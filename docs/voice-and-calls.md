@@ -21,7 +21,7 @@ Voice settings apply to every [space](./spaces.md). A space can customize them i
 ## Talk instead of typing
 
 Hold the microphone in the composer and speak; release to send. Slide up to lock recording so you
-don't have to keep holding.
+don't have to keep holding. With an empty message box, you can hold Space instead.
 
 ## Hear replies
 

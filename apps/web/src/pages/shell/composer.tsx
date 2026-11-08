@@ -26,7 +26,11 @@ import {
   useSyncExternalStore,
 } from "react";
 import { createPortal } from "react-dom";
-import { HoldToTalkStrip, useHoldToTalk } from "../../components/composer/HoldToTalk";
+import {
+  HoldToTalkStrip,
+  SPACE_HOLD_MS,
+  useHoldToTalk,
+} from "../../components/composer/HoldToTalk";
 import { recordMessageSent } from "../../components/GitHubStarPrompt";
 import type { ArtifactTarget } from "../../lib/artifact-open";
 import { attachmentPickerAccept } from "../../lib/attachment-picker-accept";
@@ -351,6 +355,78 @@ const ComposerBody = memo(function Composer({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+  }, [textareaRef]);
+  // Holding Space in the empty message field, or with nothing focused, dictates like holding the
+  // mic: speak, then release to send. A quick tap records nothing, and a message with text keeps
+  // its ordinary space.
+  useEffect(() => {
+    let hold: { timer: ReturnType<typeof setTimeout> | null } | null = null;
+    function release(send: boolean) {
+      if (!hold) {
+        return;
+      }
+      const recording = hold.timer === null;
+      if (hold.timer) {
+        clearTimeout(hold.timer);
+      }
+      hold = null;
+      if (!recording) {
+        return;
+      }
+      if (send) {
+        dictateKey.current.talk.submit();
+      } else {
+        dictateKey.current.talk.cancel();
+      }
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (
+        event.code !== "Space" ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey
+      ) {
+        return;
+      }
+      if (hold) {
+        event.preventDefault();
+        return;
+      }
+      const { talk, available } = dictateKey.current;
+      if (event.repeat || !available || talk.recording || hasOpenDialog(document)) {
+        return;
+      }
+      if (event.target !== textareaRef.current && event.target !== document.body) {
+        return;
+      }
+      event.preventDefault();
+      const pending: { timer: ReturnType<typeof setTimeout> | null } = { timer: null };
+      pending.timer = setTimeout(() => {
+        pending.timer = null;
+        dictateKey.current.talk.startHandsFree();
+      }, SPACE_HOLD_MS);
+      hold = pending;
+    }
+    function onKeyUp(event: KeyboardEvent) {
+      if (event.code !== "Space" || !hold) {
+        return;
+      }
+      event.preventDefault();
+      release(true);
+    }
+    const onBlur = () => release(false);
+    window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("keyup", onKeyUp, true);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("keyup", onKeyUp, true);
+      window.removeEventListener("blur", onBlur);
+      if (hold?.timer) {
+        clearTimeout(hold.timer);
+      }
+    };
   }, [textareaRef]);
   useLayoutEffect(() => {
     if (pendingCaret.current === null) return;

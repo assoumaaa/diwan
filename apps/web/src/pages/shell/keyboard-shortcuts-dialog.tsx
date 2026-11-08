@@ -30,6 +30,7 @@ export function KeyboardShortcutsDialog({
     { label: t`Toggle sidebar`, keys: [[mod, "B"]] },
     { label: t`Focus message`, keys: [[mod, "I"]] },
     dictation && { label: t`Dictate`, keys: [[mod, "D"]] },
+    dictation && { label: t`Hold to talk`, keys: [["Space"]] },
     { label: t`Chat details`, keys: [[mod, shift, ","]] },
     { label: t`Connect apps`, keys: [[mod, shift, "M"]] },
     host.desktop && { label: t`Go to bot`, keys: [[mod, "1–9"]] },

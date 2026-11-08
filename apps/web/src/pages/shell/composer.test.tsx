@@ -21,6 +21,7 @@ vi.mock("../../components/SubscriptionGate", () => ({
   useBilling: () => ({ status: billing.status, showPlans: () => {} }),
 }));
 
+import { SPACE_HOLD_MS } from "../../components/composer/HoldToTalk";
 import { replaceComposerDraft } from "../../lib/composer-draft";
 import { dictation } from "../../lib/dictation";
 import { createPageSession, PagesProvider } from "../../lib/pages";
@@ -2451,3 +2452,85 @@ it.each([
     expect(onSend.mock.calls[0]?.[0]).toBe("please book the flight and a hotel");
   },
 );
+
+describe("hold Space to talk", () => {
+  function pressSpace(target: EventTarget, type: "keydown" | "keyup") {
+    const event = new KeyboardEvent(type, {
+      key: " ",
+      code: "Space",
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      target.dispatchEvent(event);
+    });
+    return event;
+  }
+
+  it("dictates while Space is held in the empty message field and sends on release", async () => {
+    vi.useFakeTimers();
+    let onFinal!: (text: string) => void;
+    const listen = vi.spyOn(dictation, "listen").mockImplementation(async (options) => {
+      onFinal = options.onFinal;
+    });
+    const submitHold = vi.spyOn(dictation, "submitHold").mockImplementation(() => {
+      onFinal("spoken words");
+    });
+    try {
+      const onSend = vi.fn(async () => true);
+      const textarea = renderComposer(onSend, { phoneCallsEnabled: true });
+      textarea.focus();
+      expect(pressSpace(textarea, "keydown").defaultPrevented).toBe(true);
+      expect(listen).not.toHaveBeenCalled();
+      act(() => {
+        vi.advanceTimersByTime(SPACE_HOLD_MS);
+      });
+      expect(listen).toHaveBeenCalledWith(expect.objectContaining({ mode: "hold" }));
+      pressSpace(textarea, "keyup");
+      await act(async () => {});
+      expect(submitHold).toHaveBeenCalledTimes(1);
+      expect(onSend).toHaveBeenCalledWith("spoken words", [], expect.any(String));
+      expect(textarea.value).toBe("");
+    } finally {
+      listen.mockRestore();
+      submitHold.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it("starts nothing on a quick tap", () => {
+    vi.useFakeTimers();
+    const listen = vi.spyOn(dictation, "listen").mockImplementation(async () => {});
+    try {
+      const textarea = renderComposer(vi.fn(), { phoneCallsEnabled: true });
+      textarea.focus();
+      pressSpace(textarea, "keydown");
+      pressSpace(textarea, "keyup");
+      act(() => {
+        vi.advanceTimersByTime(SPACE_HOLD_MS * 2);
+      });
+      expect(listen).not.toHaveBeenCalled();
+    } finally {
+      listen.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it("types a normal space once the message has text", () => {
+    vi.useFakeTimers();
+    const listen = vi.spyOn(dictation, "listen").mockImplementation(async () => {});
+    try {
+      const textarea = renderComposer(vi.fn(), { phoneCallsEnabled: true });
+      type(textarea, "hello");
+      textarea.focus();
+      expect(pressSpace(textarea, "keydown").defaultPrevented).toBe(false);
+      act(() => {
+        vi.advanceTimersByTime(SPACE_HOLD_MS * 2);
+      });
+      expect(listen).not.toHaveBeenCalled();
+    } finally {
+      listen.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+});

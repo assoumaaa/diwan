@@ -10,6 +10,8 @@ import { IconTooltip } from "../IconTooltip";
 export const LOCK_DISTANCE_PX = 64;
 /** A press shorter than this is a tap: nothing was said, so it only shows the hint. */
 export const TAP_MS = 350;
+/** How long Space must be held before it records, so a quick tap never opens the microphone. */
+export const SPACE_HOLD_MS = 300;
 const HINT_MS = 2_500;
 
 type Recording = { locked: boolean; startedAt: number } | null;
