@@ -354,6 +354,12 @@ it("keeps the last cleared memory document available to reopen in the session", 
   try {
     await show(root, <KnowledgeSection botId="fixture" />);
     await act(async () => button("MEMORY.md").click());
+    // An open document reads as formatted text; Edit shows its source.
+    expect(host.querySelector("textarea")).toBeNull();
+    expect(host.querySelector('[data-testid="memory-document-view"]')?.textContent).toContain(
+      "Saved memory",
+    );
+    await act(async () => button("Edit").click());
     await act(async () => {
       const field = host.querySelector("textarea")!;
       Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field, "");
@@ -367,6 +373,7 @@ it("keeps the last cleared memory document available to reopen in the session", 
     });
     expect(host.textContent).toContain("MEMORY.md");
     await act(async () => button("MEMORY.md").click());
+    await act(async () => button("Edit").click());
     expect(host.querySelector("textarea")?.value).toBe("");
   } finally {
     await act(async () => root.unmount());

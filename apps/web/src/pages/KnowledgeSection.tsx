@@ -1,5 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { ORPCError } from "@orpc/client";
+import { ChatMarkdown } from "@rakazo/chat-ui/web";
 import type { AgentSkill, AgentSkillCatalogEntry, MemoryDocument } from "@rakazo/contracts";
 import { isDeletableMemoryDocument, isEmptyBotMemory } from "@rakazo/contracts";
 import { fetchFresh, writeSaved } from "@rakazo/core/query";
@@ -99,6 +100,8 @@ function MemoryDocumentList({
   const memoryVisible = memoryShown || docs.some((doc) => !isEmptyBotMemory(doc));
   if (memoryVisible && !memoryShown) setMemoryShown(true);
   const [openId, setOpenId] = useState<string | null>(null);
+  // An open document reads as formatted text until Edit shows its source.
+  const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [loadedRevision, setLoadedRevision] = useState<number | undefined>();
   const [conflicted, setConflicted] = useState(false);
@@ -116,6 +119,7 @@ function MemoryDocumentList({
     setLoadedRevision(doc.revision);
     setConflicted(false);
     setOpenId(doc.id);
+    setEditing(false);
     setDraft(doc.content);
     setError(null);
     setConfirmingDelete(false);
@@ -255,25 +259,47 @@ function MemoryDocumentList({
               </div>
               {openId === doc.id ? (
                 <div className="pb-2">
-                  <Textarea
-                    aria-label={doc.path}
-                    disabled={busy}
-                    value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
-                    rows={Math.min(16, Math.max(4, draft.split("\n").length + 1))}
-                    className={fieldClass}
-                    dir="auto"
-                  />
-                  <div className="mt-2 flex gap-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      type="button"
-                      disabled={busy || conflicted || draft === doc.content}
-                      onClick={() => void save(doc)}
+                  {editing ? (
+                    <Textarea
+                      aria-label={doc.path}
+                      disabled={busy}
+                      value={draft}
+                      onChange={(event) => setDraft(event.target.value)}
+                      rows={Math.min(16, Math.max(4, draft.split("\n").length + 1))}
+                      className={fieldClass}
+                      dir="auto"
+                    />
+                  ) : (
+                    <div
+                      data-testid="memory-document-view"
+                      className="mt-2 max-h-96 overflow-y-auto rounded-lg border border-border px-4 py-3 text-body"
+                      dir="auto"
                     >
-                      <Trans>Save</Trans>
-                    </Button>
+                      <ChatMarkdown>{draft}</ChatMarkdown>
+                    </div>
+                  )}
+                  <div className="mt-2 flex gap-2">
+                    {editing ? (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        type="button"
+                        disabled={busy || conflicted || draft === doc.content}
+                        onClick={() => void save(doc)}
+                      >
+                        <Trans>Save</Trans>
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        type="button"
+                        disabled={busy || conflicted}
+                        onClick={() => setEditing(true)}
+                      >
+                        <Trans>Edit</Trans>
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       type="button"
