@@ -111,6 +111,7 @@ export function FixtureTranscript({
         onReact={resolved}
         onJumpToMessage={noop}
         onOpenPeerMessages={noop}
+        onSetPeerFold={noop}
         memberName={(botId) => bot(botId)?.name}
         peerBot={(botId) => bot(botId) ?? BOT}
         onRefresh={resolved}

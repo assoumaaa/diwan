@@ -51,6 +51,17 @@ describe("peer exchanges", () => {
     },
   );
 
+  it("leaves a folded relay out of the exchange count", () => {
+    // A result wakes the bot to report to the person; folded away, it is still not a peer message.
+    const wake = received("m1", "result");
+    const transcript = foldPeerReplies([wake, reply("m2", wake.runId!)], {
+      includePeerReceipts: true,
+      foldRelayReplies: true,
+    });
+    expect(transcript.markerOf.get("m2")).toBe("m1");
+    expect(peerExchangeLines(transcript).lines.get("m1")?.count).toBe(1);
+  });
+
   it("counts an oversized reply and its truncated return receipt once", () => {
     const wake = received("m1");
     const text = "x".repeat(BOT_MESSAGE_MAX_LENGTH + 500);

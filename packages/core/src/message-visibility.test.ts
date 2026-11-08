@@ -227,6 +227,46 @@ describe("user-visible messages", () => {
     expect(transcript.folded.get("received")).toEqual([pageReply]);
   });
 
+  it("folds a relay under the chip that opens its exchange when the chat asks to", () => {
+    const transcript = [
+      message("user", "run-user", [{ kind: "text", text: "Please ask Coder." }]),
+      message("sent", "run-user", [
+        { kind: "bot_message_sent", toBotId: "coder", toBotName: "Coder", text: "Check this." },
+      ]),
+      {
+        ...message("received", "run-peer", [
+          {
+            kind: "bot_message_received",
+            fromBotId: "coder",
+            fromBotName: "Coder",
+            text: "The endpoint returns 200.",
+            intent: "result" as const,
+          },
+        ]),
+        replyToMessageId: "sent",
+      },
+      message("relay", "run-peer", [{ kind: "text", text: "Coder confirmed it returns 200." }]),
+    ];
+    const folded = foldPeerReplies(transcript, {
+      includePeerReceipts: true,
+      foldRelayReplies: true,
+    });
+
+    // The marker merged into "Messaged Coder", so the relay folds under that receipt.
+    expect(folded.messages.map((item) => item.id)).toEqual(["user", "sent"]);
+    expect(folded.folded.get("sent")?.map((item) => item.id)).toEqual(["relay"]);
+    expect(folded.relayReplies).toEqual(new Set(["relay"]));
+    expect(expandPeerReplies(folded, new Set(["sent"])).map((item) => item.id)).toEqual([
+      "user",
+      "sent",
+      "relay",
+    ]);
+    // Without the option the relay stays inline, as every other caller expects.
+    expect(
+      foldPeerReplies(transcript, { includePeerReceipts: true }).messages.map((item) => item.id),
+    ).toEqual(["user", "sent", "relay"]);
+  });
+
   it("keeps chart-only relays inline", () => {
     const relayReceipt = { ...received, replyToMessageId: "sent" };
     const chartReply = message("chart_reply", "run-peer", [

@@ -39,6 +39,7 @@ import {
   shouldRenderToolCard,
   toolStepCount,
 } from "../../lib/tool-activity-view";
+import type { PeerFold } from "../../lib/transcript-projection";
 import { ReplyLine } from "./chat-context";
 import { FALLBACK_BOT_COLOR, previewMessageText } from "./chat-shared";
 import type { ImportSetupTarget } from "./import-setup-card";
@@ -65,6 +66,8 @@ export const MessageView = memo(function MessageView({
   onOpenBot,
   onOpenPeerMessages,
   peerExchange,
+  peerFold,
+  onSetPeerFold,
   speakerName,
   memberName,
   peerBot,
@@ -109,6 +112,9 @@ export const MessageView = memo(function MessageView({
   onOpenPeerMessages: (peer: { peerBotId: string; peerBotName: string }) => void;
   /** The adjacent receipts represented by this peer line. */
   peerExchange?: PeerExchange;
+  /** Replies folded under this peer line, which a click folds open or closed. */
+  peerFold?: PeerFold;
+  onSetPeerFold: (markerIds: readonly string[], open: boolean) => void;
   speakerName?: string;
   memberName?: (botId: string | undefined) => string | undefined;
   peerBot: (
@@ -392,7 +398,18 @@ export const MessageView = memo(function MessageView({
                 avatarSet={peerBot(peerBotId)?.avatarSet}
                 identity={peerBotId}
                 label={label}
-                onClick={() => onOpenPeerMessages({ peerBotId, peerBotName: peer })}
+                // A line with folded replies folds them in place; the whole chat stays one click away.
+                open={peerFold?.open}
+                onClick={() =>
+                  peerFold
+                    ? onSetPeerFold(peerFold.markerIds, !peerFold.open)
+                    : onOpenPeerMessages({ peerBotId, peerBotName: peer })
+                }
+                onOpenChat={
+                  peerFold?.open
+                    ? () => onOpenPeerMessages({ peerBotId, peerBotName: peer })
+                    : undefined
+                }
               />
             );
           }

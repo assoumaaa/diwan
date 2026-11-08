@@ -63,7 +63,8 @@ export function unreturnedPeerReplies<T extends Message>(
     result.set(
       marker.id,
       replies.filter((reply) => {
-        if (reply.role !== "bot") return false;
+        // A relay is the bot's reply to the person, not a message the other bot missed.
+        if (reply.role !== "bot" || transcript.relayReplies?.has(reply.id)) return false;
         const content = reply.blocks.filter(
           (b) => b.kind === "text" || b.kind === "file" || b.kind === "image",
         );

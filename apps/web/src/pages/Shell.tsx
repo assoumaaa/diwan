@@ -617,7 +617,11 @@ function SpaceShell() {
     ? snapshot?.groupId === groupId
     : snapshot?.botId === active?.id;
   const activeSnapshot = snapshotIsOpenChat ? snapshot : null;
-  const { view: transcriptView, expandPeerMarker } = useTranscriptView({
+  const {
+    view: transcriptView,
+    expandPeerMarker,
+    setPeerFold,
+  } = useTranscriptView({
     snapshot: activeSnapshot,
     meId: userId,
     showToolActivity,
@@ -1093,6 +1097,7 @@ function SpaceShell() {
               markedUnreadMessageId={read.markedUnreadMessageId}
               view={transcriptView}
               onExpandPeerMarker={expandPeerMarker}
+              onSetPeerFold={setPeerFold}
               loadingOlder={loadingOlder}
               userBubble={userBubble}
               onCallBack={

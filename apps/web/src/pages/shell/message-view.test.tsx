@@ -82,6 +82,7 @@ function renderView(
         onAnswer={vi.fn()}
         onOpenBot={vi.fn()}
         onOpenPeerMessages={vi.fn()}
+        onSetPeerFold={vi.fn()}
         peerBot={existingBot}
         onRefresh={vi.fn()}
         onBotChanged={vi.fn()}
@@ -216,6 +217,7 @@ it("keeps an edit made after a save when the saved status arrives late", async (
         onAnswer={vi.fn()}
         onOpenBot={vi.fn()}
         onOpenPeerMessages={vi.fn()}
+        onSetPeerFold={vi.fn()}
         peerBot={existingBot}
         onRefresh={() => Promise.reject(new Error("offline"))}
         onBotChanged={vi.fn()}
@@ -357,12 +359,52 @@ it("opens one counted peer line without an inline reply toggle", () => {
         direction: "sent",
       },
       onOpenPeerMessages: open,
+      onSetPeerFold: vi.fn(),
     },
   );
   const line = container.querySelector<HTMLButtonElement>('[data-testid="peer-receipt-chip"]');
   expect(line?.getAttribute("aria-label")).toBe("3 messages with Researcher");
   expect(container.querySelector('[data-testid="peer-replies-toggle"]')).toBeNull();
   act(() => line?.click());
+  expect(open).toHaveBeenCalledWith({ peerBotId: "peer", peerBotName: "Researcher" });
+});
+
+it("folds a peer line's replies in place and keeps the whole chat one click away", () => {
+  const open = vi.fn();
+  const setFold = vi.fn();
+  const sent = [
+    {
+      kind: "bot_message_sent" as const,
+      toBotId: "peer",
+      toBotName: "Researcher",
+      text: "Request",
+    },
+  ];
+  const line = () =>
+    container.querySelector<HTMLButtonElement>('[data-testid="peer-receipt-chip"]');
+  const openChat = () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="Open chat with Researcher"]');
+
+  renderView("bot", sent, {
+    peerFold: { markerIds: ["sent-1"], open: false },
+    onOpenPeerMessages: open,
+    onSetPeerFold: setFold,
+  });
+  expect(line()?.getAttribute("aria-expanded")).toBe("false");
+  expect(openChat()).toBeNull();
+  act(() => line()?.click());
+  expect(setFold).toHaveBeenLastCalledWith(["sent-1"], true);
+  expect(open).not.toHaveBeenCalled();
+
+  renderView("bot", sent, {
+    peerFold: { markerIds: ["sent-1"], open: true },
+    onOpenPeerMessages: open,
+    onSetPeerFold: setFold,
+  });
+  expect(line()?.getAttribute("aria-expanded")).toBe("true");
+  act(() => line()?.click());
+  expect(setFold).toHaveBeenLastCalledWith(["sent-1"], false);
+  act(() => openChat()?.click());
   expect(open).toHaveBeenCalledWith({ peerBotId: "peer", peerBotName: "Researcher" });
 });
 

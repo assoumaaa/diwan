@@ -1,6 +1,13 @@
 import { renderToString } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ActiveBotGlyph, CollaborationMarker } from "./CollaborationMarker";
+
+vi.mock("@lingui/react/macro", () => ({
+  useLingui: () => ({
+    t: (strings: TemplateStringsArray, ...values: unknown[]) =>
+      String.raw({ raw: strings }, ...values),
+  }),
+}));
 
 describe("collaboration transcript markers", () => {
   it("shows a centred peer event with its avatar and full label", () => {

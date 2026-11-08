@@ -29,6 +29,12 @@ export type UserVisibleMessagesOptions = {
    * work is the bot's own reply to the user and stays either way.
    */
   includeDelegatedReplyText?: boolean;
+  /**
+   * With receipts kept, also fold a relay -- the bot's reply after another bot reports back on
+   * work it delegated -- under the chip that opens that exchange, for a chat that lets the person
+   * fold it open. Its user-input cards stay inline. Off by default: the reply is for the user.
+   */
+  foldRelayReplies?: boolean;
 };
 
 export function isPeerReceiptBlocks(blocks: readonly MessageBlock[]): boolean {
@@ -83,6 +89,8 @@ export type FoldedTranscript<T> = {
   markerOf: ReadonlyMap<string, string>;
   /** The "Messaged X" receipt each dropped relay marker merged into, so a jump lands there. */
   mergedInto: ReadonlyMap<string, string>;
+  /** Folded relays: the bot's own replies to the user, which the other bot never received. */
+  relayReplies?: ReadonlySet<string>;
 };
 
 /** Where a jump to a message lands: a dropped relay marker resolves to its receipt. */
@@ -131,6 +139,8 @@ export function foldPeerReplies<T extends PresentableMessage>(
   const peerRunIds = new Set([...(options.knownPeerRunIds ?? []), ...markerByRunId.keys()]);
   const backgroundRunIds = new Set(options.backgroundRunIds ?? []);
   const includeText = options.includeDelegatedReplyText !== false;
+  const foldRelays = includePeerReceipts && options.foldRelayReplies === true;
+  const relayReplies = new Set<string>();
   const folded = new Map<string, T[]>();
   const markerOf = new Map<string, string>();
   const fold = (markerId: string, message: T) => {
@@ -175,13 +185,19 @@ export function foldPeerReplies<T extends PresentableMessage>(
       return false;
     // Only bot replies fold: a person's answer, steering or reaction in the run stays inline.
     if (message.role !== "bot") return true;
-    if (relayRunIds.has(message.runId)) return true;
+    const relay = relayRunIds.has(message.runId);
+    if (relay && !foldRelays) return true;
     const markerId = includePeerReceipts ? markerByRunId.get(message.runId) : undefined;
     // A reply whose marker is outside the loaded page stays inline.
     if (markerId === undefined) return true;
+    if (relay) {
+      relayReplies.add(message.id);
+      // A dropped relay marker shows as the "Messaged X" receipt it merged into: fold there.
+      return fold(mergedInto.get(markerId) ?? markerId, message);
+    }
     return fold(markerId, message);
   });
-  return { messages: visible, folded, markerOf, mergedInto };
+  return { messages: visible, folded, markerOf, mergedInto, relayReplies };
 }
 
 export function userVisibleMessages<T extends PresentableMessage>(

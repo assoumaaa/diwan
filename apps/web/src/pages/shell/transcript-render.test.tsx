@@ -29,6 +29,8 @@ vi.mock("@lingui/react/macro", () => ({
   }),
 }));
 
+// One function for every render, as the shell's own callback is.
+const setPeerFold = vi.fn();
 let container: HTMLDivElement;
 let root: Root;
 beforeEach(() => {
@@ -101,6 +103,7 @@ function Host({ snapshot }: { snapshot: ThreadSnapshot }) {
       onReact={react}
       onJumpToMessage={reply}
       onOpenPeerMessages={peer}
+      onSetPeerFold={setPeerFold}
       peerBot={peer}
       onRefresh={refresh}
       onBotChanged={refresh}

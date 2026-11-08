@@ -57,9 +57,18 @@ export type TranscriptMessageRow = {
   pages?: readonly PageBlock[];
   /** Emoji replies folded under the message, with their counts. */
   reactions?: ReadonlyMap<MessageReaction, number>;
+  /** Replies folded under this peer line: clicking the line folds them open or closed. */
+  peerFold?: PeerFold;
   replyParent?: ThreadMessage;
   canAnswer: boolean;
   canDismiss: boolean;
+};
+
+export type PeerFold = {
+  /** The markers this line stands for that hold folded replies. */
+  markerIds: readonly string[];
+  /** Whether those replies show right now. */
+  open: boolean;
 };
 
 export type TranscriptVoiceChatRow = {
@@ -136,7 +145,7 @@ export function projectTranscript(
   const folded =
     previous && messages === before?.messages
       ? previous.folded
-      : foldPeerReplies(messages, { includePeerReceipts: true });
+      : foldPeerReplies(messages, { includePeerReceipts: true, foldRelayReplies: true });
   const listed = expandPeerReplies(folded, input.expandedMarkerIds);
   const messageById = new Map(listed.map((message) => [message.id, message]));
   const mentionView = projectBotMentions(listed);
@@ -149,6 +158,13 @@ export function projectTranscript(
   const shown = visibleReceipts.filter(
     (message) => !exchanges.lineOf.has(message.id) || exchanges.lines.has(message.id),
   );
+  // Each peer line folds the replies of every marker it stands for.
+  const foldMarkersOfLine = new Map<string, string[]>();
+  for (const [messageId, lineId] of exchanges.lineOf) {
+    if (folded.folded.get(messageId)?.length) {
+      foldMarkersOfLine.set(lineId, [...(foldMarkersOfLine.get(lineId) ?? []), messageId]);
+    }
+  }
   const separators = timeSeparators(previous?.separators, shown);
   const unreadDividerId = unreadDividerMessageId(
     shown,
@@ -189,6 +205,7 @@ export function projectTranscript(
       mentions: mentionView.mentions.get(message.id),
       pages: pageView.pages.get(message.id),
       reactions: reactionView.reactions.get(message.id),
+      peerFold: peerFoldOf(foldMarkersOfLine.get(message.id), input.expandedMarkerIds),
       replyParent: message.replyToMessageId ? messageById.get(message.replyToMessageId) : undefined,
       canAnswer: answerable.has(message.id),
       canDismiss: dismissable.has(message.id),
@@ -289,7 +306,24 @@ export function useTranscriptView({
     },
     [threadId],
   );
-  return { view, expandPeerMarker };
+  // A peer line folds its replies open or closed together.
+  const setPeerFold = useCallback(
+    (markerIds: readonly string[], open: boolean) => {
+      setExpanded((current) => {
+        const next = new Set(current.threadId === threadId ? current.markerIds : NO_MARKERS);
+        for (const id of markerIds) {
+          if (open) {
+            next.add(id);
+          } else {
+            next.delete(id);
+          }
+        }
+        return { threadId, markerIds: next };
+      });
+    },
+    [threadId],
+  );
+  return { view, expandPeerMarker, setPeerFold };
 }
 
 function createProjector() {
@@ -381,8 +415,23 @@ function reuseMessageRow(
     reactions: sameReactions(previous.reactions, row.reactions)
       ? previous.reactions
       : row.reactions,
+    peerFold:
+      previous.peerFold?.open === row.peerFold?.open &&
+      sameItems(previous.peerFold?.markerIds, row.peerFold?.markerIds)
+        ? previous.peerFold
+        : row.peerFold,
   };
   return sameFields(previous, next) ? previous : next;
+}
+
+function peerFoldOf(
+  markerIds: readonly string[] | undefined,
+  expandedMarkerIds: ReadonlySet<string>,
+): PeerFold | undefined {
+  if (!markerIds) {
+    return undefined;
+  }
+  return { markerIds, open: markerIds.every((id) => expandedMarkerIds.has(id)) };
 }
 
 function reuseVoiceChatRow(

@@ -43,6 +43,7 @@ export const Transcript = memo(function Transcript({
   artifactTarget,
   view,
   onExpandPeerMarker,
+  onSetPeerFold,
   meId,
   loadingOlder,
   userBubble,
@@ -80,6 +81,8 @@ export const Transcript = memo(function Transcript({
   view: TranscriptView;
   /** Shows the replies folded under a peer marker, for a jump to one of them. */
   onExpandPeerMarker: (markerId: string) => void;
+  /** Folds a peer line's replies open or closed. */
+  onSetPeerFold: (markerIds: readonly string[], open: boolean) => void;
   meId?: string;
   loadingOlder: boolean;
   /** Your bubbles take the bot's color in its own chat. */
@@ -502,6 +505,8 @@ export const Transcript = memo(function Transcript({
                       onOpenBot={onOpenBot}
                       onOpenPeerMessages={onOpenPeerMessages}
                       peerExchange={row.peerExchange}
+                      peerFold={row.peerFold}
+                      onSetPeerFold={onSetPeerFold}
                       onAnswer={onAnswer}
                       speakerName={
                         peerReceipt

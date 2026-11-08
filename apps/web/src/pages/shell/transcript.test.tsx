@@ -122,6 +122,7 @@ function baseProps(messages: readonly ThreadMessage[]): ComponentProps<typeof Tr
     onReact: vi.fn(),
     onJumpToMessage: vi.fn(),
     onOpenPeerMessages: vi.fn(),
+    onSetPeerFold: vi.fn(),
     peerBot: () => ({ name: "Atlas", color: "orange" }),
     onRefresh: vi.fn(),
     onBotChanged: vi.fn(),

@@ -182,3 +182,56 @@ describe("projectTranscript", () => {
     expect(project(view, { ...snapshot, cursor: 7 })).toBe(view);
   });
 });
+
+describe("peer folds", () => {
+  const exchange = [
+    message("ask", [{ kind: "text", text: "Ask Coder." }], { role: "user", runId: "run-user" }),
+    message(
+      "sent",
+      [{ kind: "bot_message_sent", toBotId: "coder", toBotName: "Coder", text: "Check this." }],
+      { runId: "run-user" },
+    ),
+    message(
+      "received",
+      [
+        {
+          kind: "bot_message_received",
+          fromBotId: "coder",
+          fromBotName: "Coder",
+          text: "It returns 200.",
+          intent: "result",
+        },
+      ],
+      { runId: "run-peer", role: "user", replyToMessageId: "sent" },
+    ),
+    message("update", [{ kind: "text", text: "Coder confirmed it returns 200." }], {
+      runId: "run-peer",
+    }),
+  ];
+  const projectWith = (expandedMarkerIds: ReadonlySet<string>) =>
+    projectTranscript(null, {
+      messages: exchange,
+      runs: [],
+      meId: "me",
+      showToolActivity: false,
+      unreadAfterSeq: null,
+      olderCursor: null,
+      expandedMarkerIds,
+    });
+  const rowIds = (view: TranscriptView) =>
+    view.rows.map((row) => (row.kind === "message" ? row.message.id : row.kind));
+  const chip = (view: TranscriptView) =>
+    view.rows.find(
+      (row): row is TranscriptMessageRow => row.kind === "message" && row.message.id === "sent",
+    );
+
+  it("folds a bot's update on delegated work under the line that opens the exchange", () => {
+    const closed = projectWith(new Set());
+    expect(rowIds(closed)).toEqual(["ask", "sent"]);
+    expect(chip(closed)?.peerFold).toEqual({ markerIds: ["sent"], open: false });
+
+    const open = projectWith(new Set(["sent"]));
+    expect(rowIds(open)).toEqual(["ask", "sent", "update"]);
+    expect(chip(open)?.peerFold).toEqual({ markerIds: ["sent"], open: true });
+  });
+});
