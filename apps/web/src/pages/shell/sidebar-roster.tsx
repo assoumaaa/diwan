@@ -13,6 +13,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
   GroupAvatar,
+  resolvePersonaColorDef,
 } from "@rakazo/ui-web";
 import {
   ChevronDown,
@@ -289,13 +290,6 @@ export function SidebarRoster({
                       ? t`Error`
                       : compactRosterStatusLabel(item.chat.status)
                     : null;
-                const rosterLine = compact
-                  ? compactStatusLabel
-                  : (workStatusLabel ??
-                    (item.kind === "bot"
-                      ? item.chat.preview || (item.chat.status !== "idle" ? item.chat.status : "")
-                      : item.chat.preview ||
-                        item.chat.members.map((member) => member.name).join(", ")));
                 const rowDropTarget: RosterDropTarget | null =
                   item.chat.spaceId !== bootstrapMe?.spaceId
                     ? null
@@ -323,7 +317,7 @@ export function SidebarRoster({
                       avatarSet={item.chat.avatarSet}
                       color={item.chat.color}
                       identity={item.chat.id}
-                      size={mini ? 40 : compact ? 28 : 38}
+                      size={compact && !mini ? 28 : 40}
                       status={item.chat.status}
                     />
                   ) : (
@@ -333,7 +327,7 @@ export function SidebarRoster({
                           ? (activeSnapshot.members ?? item.chat.members)
                           : item.chat.members
                       }
-                      size={mini ? 40 : compact ? 28 : 38}
+                      size={compact && !mini ? 28 : 40}
                     />
                   );
                 const chatTrigger = (
@@ -396,7 +390,7 @@ export function SidebarRoster({
                     }}
                     // Focus the row so closing the menu returns focus here.
                     onContextMenu={(event) => event.currentTarget.focus()}
-                    className={`flex items-center ${
+                    className={`relative flex items-center ${
                       mini
                         ? "mx-auto size-12 justify-center rounded-xl"
                         : compact
@@ -410,6 +404,24 @@ export function SidebarRoster({
                         : "group-hover/row:bg-accent"
                     }`}
                   >
+                    {selected && !mini ? (
+                      // The open chat's bar takes its bot's color, so the selection reads at a glance.
+                      <span
+                        aria-hidden="true"
+                        data-roster-selected-bar
+                        className={`absolute inset-y-3 start-0 w-[3px] rounded-full ${item.kind === "bot" ? "" : "bg-foreground"}`}
+                        style={
+                          item.kind === "bot"
+                            ? {
+                                backgroundColor: resolvePersonaColorDef(
+                                  item.chat.id,
+                                  item.chat.color,
+                                ).hex,
+                              }
+                            : undefined
+                        }
+                      />
+                    ) : null}
                     {/* One wrapper in both modes, so collapsing the sidebar keeps the avatar mounted. */}
                     <span className="relative shrink-0">
                       {avatar}
@@ -447,9 +459,11 @@ export function SidebarRoster({
                             <span
                               dir="auto"
                               data-roster-bot-name={item.kind === "bot" ? "" : undefined}
-                              className={`max-w-full shrink-0 truncate text-body-sm text-foreground ${
-                                item.chat.unread ? "font-semibold" : "font-medium"
-                              }`}
+                              className={`max-w-full shrink-0 truncate text-body ${
+                                selected || item.chat.unread
+                                  ? "text-foreground"
+                                  : "text-foreground/70"
+                              } ${item.chat.unread ? "font-semibold" : "font-medium"}`}
                             >
                               {item.chat.name}
                             </span>
@@ -507,21 +521,15 @@ export function SidebarRoster({
                               <span>{compactStatusLabel}</span>
                             </div>
                           ) : null
-                        ) : (
+                        ) : workStatusLabel ? (
+                          // Rows show only who and when; a second line appears while the bot works.
                           <div
                             dir="auto"
-                            data-roster-preview={!workStatusLabel ? "true" : undefined}
-                            className={`mt-1 truncate text-label ${
-                              workStatusLabel
-                                ? "font-semibold text-status-working"
-                                : item.chat.unread
-                                  ? "font-medium text-foreground/75"
-                                  : "text-muted-foreground"
-                            }`}
+                            className="mt-0.5 truncate text-label font-semibold text-status-working"
                           >
-                            {rosterLine}
+                            {workStatusLabel}
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     ) : null}
                   </ContextMenuTrigger>
