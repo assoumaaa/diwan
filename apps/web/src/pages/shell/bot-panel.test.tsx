@@ -87,6 +87,12 @@ vi.mock("@rakazo/ui-web", () => ({
       {props.children}
     </button>
   ),
+  ToggleGroup: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  ToggleGroupItem: ({ children, value }: { children?: ReactNode; value: string }) => (
+    <button type="button" data-value={value}>
+      {children}
+    </button>
+  ),
   Tabs: ({
     value: _value,
     onValueChange: _onValueChange,

@@ -54,6 +54,7 @@
   --page-tile-line: #626262;
   --primary-hover: #dbdbdb;
   --primary-disabled: #f5f5f521;
+  --chat-bot: #232323;
   --radius: 0.75rem;
 }
 
@@ -110,6 +111,7 @@
   --page-tile-line: #a1a1a6;
   --primary-hover: #363636;
   --primary-disabled: #1c1c1c26;
+  --chat-bot: #f2f2f2;
   --radius: 0.75rem;
 }
 
@@ -166,6 +168,7 @@
   --page-tile-line: #626262;
   --primary-hover: #dcdcde;
   --primary-disabled: #f4f4f521;
+  --chat-bot: #3f4247;
   --radius: 0.75rem;
 }
 
@@ -222,6 +225,7 @@
   --page-tile-line: #626262;
   --primary-hover: #cdd3df;
   --primary-disabled: #e8ebf221;
+  --chat-bot: #151922;
   --radius: 0.75rem;
 }
 
@@ -278,5 +282,6 @@
   --page-tile-line: #a1a1a6;
   --primary-hover: #3a372f;
   --primary-disabled: #23211c26;
+  --chat-bot: #efece5;
   --radius: 0.75rem;
 }

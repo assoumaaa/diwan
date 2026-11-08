@@ -10,7 +10,6 @@ import { DEFAULT_NEW_BOT_AVATAR_SET } from "@rakazo/contracts";
 import {
   channelMessageSender,
   chatSnoozed,
-  chatUserBubbleColors,
   chatWoke,
   groupBotsForSidebar,
   isActive,
@@ -45,6 +44,11 @@ import { peekBootstrapSeed } from "../lib/bootstrap";
 import { botsSidebarDensityPreference } from "../lib/bots-sidebar-density-pref";
 import { readBotsSidebarCollapsed, writeBotsSidebarCollapsed } from "../lib/bots-sidebar-pref";
 import { setCallMinimized, startCall, useCallSession } from "../lib/call-session";
+import {
+  bubbleOverridesPreference,
+  userBubbleColors,
+  userBubbleStylePreference,
+} from "../lib/chat-bubbles";
 import { composerEnterToSendPreference } from "../lib/composer-enter-to-send-pref";
 import { computersAreUnavailable } from "../lib/computer-sandbox";
 import { desktopBridge } from "../lib/desktop";
@@ -298,12 +302,17 @@ function SpaceShell() {
   );
   const activeColor = active?.color;
   const activeId = active?.id;
+  const userBubbleStyle = userBubbleStylePreference.useValue();
+  const bubbleOverrides = bubbleOverridesPreference.useValue();
   const userBubble = useMemo(
     () =>
-      activeColor !== undefined && activeId !== undefined
-        ? chatUserBubbleColors(activeColor, activeId)
-        : undefined,
-    [activeColor, activeId],
+      userBubbleColors(
+        userBubbleStyle,
+        activeId === undefined ? undefined : bubbleOverrides[activeId]?.user,
+        activeColor,
+        activeId,
+      ),
+    [userBubbleStyle, bubbleOverrides, activeColor, activeId],
   );
   const activeGroup = groups.find((group) => group.id === groupId);
   const openBotId = inGroup ? undefined : active?.id;

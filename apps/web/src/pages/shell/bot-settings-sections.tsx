@@ -6,6 +6,7 @@ import {
   BUILTIN_TOOL_NAMES,
 } from "@rakazo/contracts";
 import type { ChatModelChoice } from "@rakazo/core";
+import { BOT_COLOR_LIST } from "@rakazo/core";
 import {
   Button,
   NativeSelect,
@@ -14,9 +15,13 @@ import {
   Switch,
   Textarea,
   Toggle,
+  ToggleGroup,
+  ToggleGroupItem,
 } from "@rakazo/ui-web";
 import { Download, Settings, X } from "lucide-react";
 import type { ReactNode, RefObject } from "react";
+import type { BubbleChoice } from "../../lib/chat-bubbles";
+import { bubbleOverridesPreference, setBubbleOverride } from "../../lib/chat-bubbles";
 import { thinkingLevelLabel } from "../../lib/model-catalog";
 import { ChatModelPicker } from "./chat-model-picker";
 
@@ -498,6 +503,76 @@ export function ExportAndClear({
       >
         <Trans>Clear conversation</Trans>
       </button>
+    </div>
+  );
+}
+
+/** This bot's bubble colors on this device. Default follows Settings > Chat. */
+export function ChatColorsGroup({ botId }: { botId: string }) {
+  const { t } = useLingui();
+  const choices = bubbleOverridesPreference.useValue()[botId];
+  return (
+    <BotPanelGroup label={t`Chat colors`}>
+      <BubbleColorPicker
+        label={t`Bot bubble`}
+        value={choices?.bot}
+        onChange={(choice) => setBubbleOverride(botId, "bot", choice)}
+      />
+      <BubbleColorPicker
+        label={t`Your bubble`}
+        value={choices?.user}
+        onChange={(choice) => setBubbleOverride(botId, "user", choice)}
+      />
+    </BotPanelGroup>
+  );
+}
+
+function BubbleColorPicker({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: BubbleChoice | undefined;
+  onChange: (choice: BubbleChoice | undefined) => void;
+}) {
+  const { t } = useLingui();
+  const swatch =
+    "size-7 min-w-0 rounded-full p-0 aria-pressed:ring-2 aria-pressed:ring-foreground aria-pressed:ring-offset-2 aria-pressed:ring-offset-background";
+  return (
+    <div className="space-y-2">
+      <div className="text-body">{label}</div>
+      <ToggleGroup
+        aria-label={label}
+        value={[value ?? "default"]}
+        onValueChange={([next]) => {
+          if (next) {
+            onChange(next === "default" ? undefined : next);
+          }
+        }}
+        spacing={1}
+        className="flex flex-wrap items-center gap-2"
+      >
+        <ToggleGroupItem
+          value="default"
+          className="h-7 rounded-full px-3 text-body-sm aria-pressed:bg-background aria-pressed:shadow-sm"
+        >
+          <Trans>Default</Trans>
+        </ToggleGroupItem>
+        <ToggleGroupItem value="neutral" aria-label={t`Neutral`} className={swatch}>
+          <span className="size-5 rounded-full border border-border bg-muted" />
+        </ToggleGroupItem>
+        {BOT_COLOR_LIST.filter((color) => color.id !== "white").map((color) => (
+          <ToggleGroupItem
+            key={color.id}
+            value={color.id}
+            aria-label={color.name}
+            className={swatch}
+          >
+            <span className="size-5 rounded-full" style={{ backgroundColor: color.hex }} />
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
     </div>
   );
 }

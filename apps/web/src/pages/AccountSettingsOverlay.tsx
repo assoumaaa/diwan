@@ -48,6 +48,8 @@ import { TrustedLinkSitesSettings } from "../components/TrustedLinkSitesSettings
 import { authClient } from "../lib/auth";
 import type { BotsSidebarDensity } from "../lib/bots-sidebar-density-pref";
 import { botsSidebarDensityPreference } from "../lib/bots-sidebar-density-pref";
+import type { BotBubbleStyle, UserBubbleStyle } from "../lib/chat-bubbles";
+import { botBubbleStylePreference, userBubbleStylePreference } from "../lib/chat-bubbles";
 import { composerEnterToSendPreference } from "../lib/composer-enter-to-send-pref";
 import { getActiveUiLocale, setUiLocale } from "../lib/i18n";
 import { localTimezone, sameTimeZone, timezoneOptions } from "../lib/local-timezone";
@@ -141,6 +143,10 @@ export function GeneralSettingsPanels({
   );
   const sidebarDensity = botsSidebarDensityPreference.useValue();
   const sidebarDensityLabelId = useId();
+  const botBubbleStyle = botBubbleStylePreference.useValue();
+  const botBubbleLabelId = useId();
+  const userBubbleStyle = userBubbleStylePreference.useValue();
+  const userBubbleLabelId = useId();
   const botStyleLabelId = useId();
   const [botStyleError, setBotStyleError] = useState<string | null>(null);
   const streamReplies = responseStreamingPreference.useValue();
@@ -417,6 +423,74 @@ export function GeneralSettingsPanels({
       </SettingsGroup>
 
       <SettingsGroup title={<Trans>Chat</Trans>}>
+        <SettingsRow
+          label={
+            <span id={botBubbleLabelId}>
+              <Trans>Bot bubbles</Trans>
+            </span>
+          }
+          control={
+            <ToggleGroup
+              aria-labelledby={botBubbleLabelId}
+              data-testid="bot-bubble-style"
+              value={[botBubbleStyle]}
+              onValueChange={([next]) => {
+                if (next) {
+                  botBubbleStylePreference.set(next as BotBubbleStyle);
+                }
+              }}
+              spacing={1}
+              className="grid min-w-0 grid-cols-2 rounded-lg bg-muted p-1"
+            >
+              <ToggleGroupItem
+                value="neutral"
+                className="text-body-sm aria-pressed:bg-background aria-pressed:shadow-sm"
+              >
+                <Trans>Neutral</Trans>
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="bot"
+                className="text-body-sm aria-pressed:bg-background aria-pressed:shadow-sm"
+              >
+                <Trans>Bot color</Trans>
+              </ToggleGroupItem>
+            </ToggleGroup>
+          }
+        />
+        <SettingsRow
+          label={
+            <span id={userBubbleLabelId}>
+              <Trans>Your bubbles</Trans>
+            </span>
+          }
+          control={
+            <ToggleGroup
+              aria-labelledby={userBubbleLabelId}
+              data-testid="user-bubble-style"
+              value={[userBubbleStyle]}
+              onValueChange={([next]) => {
+                if (next) {
+                  userBubbleStylePreference.set(next as UserBubbleStyle);
+                }
+              }}
+              spacing={1}
+              className="grid min-w-0 grid-cols-2 rounded-lg bg-muted p-1"
+            >
+              <ToggleGroupItem
+                value="bot"
+                className="text-body-sm aria-pressed:bg-background aria-pressed:shadow-sm"
+              >
+                <Trans>Bot color</Trans>
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="neutral"
+                className="text-body-sm aria-pressed:bg-background aria-pressed:shadow-sm"
+              >
+                <Trans>Neutral</Trans>
+              </ToggleGroupItem>
+            </ToggleGroup>
+          }
+        />
         <SettingsRow
           label={
             <Label htmlFor={enterToSendId} className="text-body font-normal text-foreground">

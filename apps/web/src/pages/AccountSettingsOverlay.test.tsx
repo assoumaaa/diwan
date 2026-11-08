@@ -693,6 +693,27 @@ it("closes the name editor before refresh finishes and ignores a refresh failure
   }
 });
 
+it("offers default bubble colors for every chat", async () => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      root.render(<GeneralSettingsPanels name="Jamie" />);
+    });
+    expect(container.textContent).toContain("Bot bubbles");
+    expect(container.textContent).toContain("Your bubbles");
+    const options = [...container.querySelectorAll("button")].map((button) => button.textContent);
+    expect(options.filter((text) => text === "Bot color")).toHaveLength(2);
+    expect(options.filter((text) => text === "Neutral")).toHaveLength(2);
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+    vi.unstubAllGlobals();
+  }
+});
+
 it("offers Graphite, Midnight and Paper next to System, Light and Dark", async () => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   const container = document.createElement("div");

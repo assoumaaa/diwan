@@ -32,6 +32,7 @@ import { useSpaceQueries } from "../../lib/query";
 import { errorText } from "../../lib/user-error";
 import { AvatarStudioPopover } from "./avatar-studio-popover";
 import {
+  ChatColorsGroup,
   ComputerGroup,
   DescriptionGroup,
   ExportAndClear,
@@ -634,6 +635,7 @@ export function BotSettings({
                 void enqueueSave({ replyMode: next });
               }}
             />
+            <ChatColorsGroup botId={bot.id} />
             <InstructionSettings key={bot.id} bot={bot} />
             <DescriptionGroup
               ids={ids}

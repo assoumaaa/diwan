@@ -189,6 +189,8 @@ export const lightTokens = {
 export type WebColorTokens = ColorTokens & {
   primaryHover: string;
   primaryDisabled: string;
+  /** A bot's reply bubble. A chat can tint it with the bot's color; the theme's text stays on it. */
+  chatBot: string;
 };
 
 /**
@@ -213,6 +215,7 @@ export const webDarkOverrides = {
   secondaryForeground: "#F5F5F5",
   chatUser: "#3E3E3E",
   chatUserForeground: "#F5F5F5",
+  chatBot: "#232323",
   muted: "#232323",
   mutedForeground: "#F5F5F5A8",
   faintForeground: "#F5F5F58A",
@@ -253,6 +256,7 @@ export const webLightOverrides = {
   secondary: "#1C1C1C0F",
   secondaryForeground: "#1C1C1C",
   chatUser: "#1C1C1C",
+  chatBot: "#F2F2F2",
   muted: "#F2F2F2",
   mutedForeground: "#1C1C1CAD",
   faintForeground: "#1C1C1C8F",
@@ -299,6 +303,7 @@ export const webGraphiteOverrides = {
   secondaryForeground: "#F4F4F5",
   chatUser: "#4B4F57",
   chatUserForeground: "#F5F5F6",
+  chatBot: "#3F4247",
   muted: "#3F4247",
   mutedForeground: "#A9ACB2",
   faintForeground: "#7D8187",
@@ -342,6 +347,7 @@ export const webMidnightOverrides = {
   secondaryForeground: "#E8EBF2",
   chatUser: "#1C2333",
   chatUserForeground: "#DBE6FF",
+  chatBot: "#151922",
   muted: "#151922",
   mutedForeground: "#8A93A6",
   faintForeground: "#646D80",
@@ -385,6 +391,7 @@ export const webPaperOverrides = {
   secondaryForeground: "#23211C",
   chatUser: "#ECE6D6",
   chatUserForeground: "#2B2617",
+  chatBot: "#EFECE5",
   muted: "#EFECE5",
   mutedForeground: "#6F6A5F",
   faintForeground: "#8E887B",
