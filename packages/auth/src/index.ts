@@ -40,16 +40,19 @@ import {
   signedBearer,
 } from "./account-security.js";
 import { breachedPasswordCheck } from "./breached-password.js";
+import { CLIENT_IP_HEADER } from "./client-ip-header.js";
 import { DEACTIVATED_AT_FIELD } from "./directory.js";
 import type { EmailLocaleOf } from "./email.js";
 import { emailLocale, passwordResetEmail, signInCodeEmail, verificationEmail } from "./email.js";
 import { hasRecentIdentityConfirmation, identityConfirmation } from "./identity-confirmation.js";
+import { localOwner } from "./local-owner.js";
 import type { OidcConfig } from "./oidc.js";
 import { isCurrentOidcAccount, oidcDiscovery } from "./oidc.js";
 import { passkeyRelyingParty } from "./passkey.js";
 import type { TokenKey } from "./token-storage.js";
 import { encryptStoredOAuthTokens, openIdToken, sealIdToken } from "./token-storage.js";
 
+export { CLIENT_IP_HEADER } from "./client-ip-header.js";
 export type { DirectoryAccountChange } from "./directory.js";
 export { createDirectory } from "./directory.js";
 export {
@@ -84,6 +87,8 @@ export interface AuthEnv {
   signupAllowlist: string | undefined;
   /** Admits a new account only while there is none, for a deployment that serves one person. */
   singleAccount?: boolean;
+  /** Signs in whoever uses the app on the computer running the server, without credentials. */
+  localOwnerMode?: boolean;
   extraOrigins?: string[];
   /** SHA-256 signing certificate fingerprints of Android apps allowed to use this server's passkeys. */
   androidAppCertFingerprints?: string[];
@@ -125,12 +130,6 @@ function isUnusedEmailCodePath(path: string, body: { type?: unknown } | undefine
   if (path === SEND_SIGN_IN_CODE_PATH) return body?.type !== "sign-in";
   return path.startsWith("/email-otp/") || path === "/forget-password/email-otp";
 }
-
-/**
- * The only header Better Auth reads a client IP from. The API sets it from the socket peer and its
- * trusted proxies and drops any client-supplied copy, so a caller cannot choose its own address.
- */
-export const CLIENT_IP_HEADER = "x-rakazo-client-ip";
 
 /** Routes that end sessions other than the caller's own sign-out. Recorded per deleted session. */
 const REVOCATION_PATHS = new Set(["/revoke-session", "/revoke-sessions", "/revoke-other-sessions"]);
@@ -436,6 +435,7 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
           ]
         : []),
       ...(env.breachedPasswordCheck ? [breachedPasswordCheck()] : []),
+      ...(env.localOwnerMode ? [localOwner(prisma)] : []),
       // Registration keeps the plugin default: a fresh session of the signed-in user.
       // Sign-in creates its session through the session hooks below like every other method.
       ...(relyingParty

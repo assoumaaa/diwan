@@ -7,6 +7,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { authClient } from "../lib/auth";
 import type { AuthCapabilities } from "../lib/auth-capabilities";
 import { fetchAuthCapabilities } from "../lib/auth-capabilities";
+import { reloadInto, signInLocalOwner } from "../lib/local-owner";
 import { clearSpaceSelection } from "../lib/rpc";
 import { AuthPage } from "./Auth";
 
@@ -69,6 +70,7 @@ vi.mock("../lib/auth", () => ({
   },
 }));
 vi.mock("../lib/rpc", () => ({ clearSpaceSelection: vi.fn() }));
+vi.mock("../lib/local-owner", () => ({ signInLocalOwner: vi.fn(), reloadInto: vi.fn() }));
 const capabilities: AuthCapabilities = {
   passwordAuth: false,
   sso: { name: "Example", availability: "unavailable" },
@@ -79,6 +81,7 @@ let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(signInLocalOwner).mockResolvedValue("unavailable");
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -112,6 +115,34 @@ async function submit() {
     host.querySelector("form")!.requestSubmit();
   });
 }
+it.each(["in", "up"] as const)(
+  "opens the app without a form when this computer signs in locally on %s",
+  async (mode) => {
+    vi.mocked(signInLocalOwner).mockResolvedValue("signed-in");
+    vi.mocked(fetchAuthCapabilities).mockResolvedValue(capabilities);
+    await render(mode, "/?next=/integrations/setup");
+    expect(reloadInto).toHaveBeenCalledWith("/integrations/setup");
+    expect(host.querySelector("input")).toBeNull();
+    expect(host.textContent).not.toContain("Continue with Example");
+  },
+);
+it("asks only for a name on a fresh local install, then opens the app", async () => {
+  vi.mocked(signInLocalOwner)
+    .mockResolvedValueOnce("needs-name")
+    .mockResolvedValueOnce("signed-in");
+  vi.mocked(fetchAuthCapabilities).mockResolvedValue(capabilities);
+  await render("up");
+  expect(host.querySelectorAll("input")).toHaveLength(1);
+  await enter(host.querySelector("input"), "  Omar ");
+  await submit();
+  expect(signInLocalOwner).toHaveBeenLastCalledWith("Omar");
+  expect(reloadInto).toHaveBeenCalledWith("/onboarding");
+});
+it("never tries local sign-in on the password reset page", async () => {
+  vi.mocked(fetchAuthCapabilities).mockResolvedValue(capabilities);
+  await render("forgot");
+  expect(signInLocalOwner).not.toHaveBeenCalled();
+});
 it.each(["in", "up", "forgot"] as const)(
   "stays blank while capabilities load on %s",
   async (mode) => {

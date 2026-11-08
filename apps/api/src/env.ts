@@ -40,6 +40,8 @@ export interface AppEnv {
   passwordAuth?: boolean;
   /** Opt-in Have I Been Pwned check for new passwords. Default off: it calls an outside service. */
   breachedPasswordCheck?: boolean;
+  /** Signs in whoever uses the app on the computer running the server, with no credentials. */
+  localOwnerMode?: boolean;
   oidc?: OidcConfig;
   /** Bearer token the identity provider presents to provision accounts over SCIM. */
   scimBearerToken?: string;
@@ -206,6 +208,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
   for (const key of [
     "AUTH_PASSWORD_ENABLED",
     "AUTH_BREACHED_PASSWORD_CHECK_ENABLED",
+    "LOCAL_OWNER_MODE",
     "OIDC_ALLOW_SIGNUP_BYPASS",
   ]) {
     const value = source[key];
@@ -239,6 +242,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
   return {
     passwordAuth,
     breachedPasswordCheck: source.AUTH_BREACHED_PASSWORD_CHECK_ENABLED === "true",
+    localOwnerMode: source.LOCAL_OWNER_MODE === "true",
     oidc,
     scimBearerToken,
     nodeEnv: source.NODE_ENV ?? "",

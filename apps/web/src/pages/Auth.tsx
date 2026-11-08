@@ -14,6 +14,7 @@ import { authClient } from "../lib/auth";
 import type { AuthCapabilities } from "../lib/auth-capabilities";
 import { fetchAuthCapabilities } from "../lib/auth-capabilities";
 import { desktopBridge } from "../lib/desktop";
+import { reloadInto, signInLocalOwner } from "../lib/local-owner";
 import { clearSpaceSelection } from "../lib/rpc";
 import { newAccountDestination, signInNext } from "../lib/sign-in-next";
 import { runSsoFlow } from "../lib/sso-flow";
@@ -89,6 +90,47 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
       active = false;
     };
   }, [mode, capabilityAttempt]);
+
+  // Local mode: on the computer running the server, the server signs its owner in directly.
+  const [local, setLocal] = useState<"checking" | "needs-name" | "unavailable">(
+    mode === "forgot" ? "unavailable" : "checking",
+  );
+  const [ownerName, setOwnerName] = useState("");
+
+  useEffect(() => {
+    if (mode === "forgot") {
+      return;
+    }
+    let active = true;
+    void signInLocalOwner().then((result) => {
+      if (!active) {
+        return;
+      }
+      if (result === "signed-in") {
+        reloadInto(next ?? "/app");
+        return;
+      }
+      setLocal(result);
+    });
+    return () => {
+      active = false;
+    };
+  }, [mode, next]);
+
+  async function submitOwnerName(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = ownerName.trim();
+    if (!trimmed) {
+      return;
+    }
+    setPending(true);
+    if ((await signInLocalOwner(trimmed)) === "signed-in") {
+      reloadInto(newAccountDestination(next));
+      return;
+    }
+    setPending(false);
+    setError(t`Could not continue`);
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -227,8 +269,34 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
     }
   }
 
-  if (!sent && !reset && !capabilityError) {
+  if (local === "checking" || (!sent && !reset && !capabilityError)) {
     return <div className="h-full bg-background" />;
+  }
+
+  if (local === "needs-name") {
+    return (
+      <AuthFrame onSubmit={submitOwnerName} title={<Trans>What's your name?</Trans>}>
+        <Input
+          id="owner-name"
+          name="name"
+          autoComplete="name"
+          autoFocus
+          aria-label={t`Name`}
+          value={ownerName}
+          onChange={(e) => setOwnerName(e.target.value)}
+          placeholder={t`Your name`}
+          className={fieldClass}
+        />
+        {error ? (
+          <p role="alert" className="mt-3 text-body text-destructive">
+            {error}
+          </p>
+        ) : null}
+        <Button type="submit" disabled={pending || !ownerName.trim()} className={submitClass}>
+          <Trans>Continue</Trans>
+        </Button>
+      </AuthFrame>
+    );
   }
 
   return (
