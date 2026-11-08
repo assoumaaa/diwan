@@ -7,7 +7,8 @@ const STORAGE_KEY = "rakazo:right-panel-width";
 const MIN_WIDTH = 320;
 const DEFAULT_WIDTH = 384;
 const ABSOLUTE_MAX = 1000;
-const MIN_CHAT_WIDTH = 320;
+// Below this the chat is too cramped to read, so the panel floats over it instead.
+const MIN_CHAT_WIDTH = 480;
 
 function maximumWidth(reservedLeadingPx: number, viewportWidth = window.innerWidth) {
   return Math.max(

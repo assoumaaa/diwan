@@ -495,13 +495,14 @@ export function BotSettings({
 
   return (
     <div data-testid="bot-settings">
-      <div data-testid="bot-profile-header" className="flex flex-col items-center pb-5 text-center">
-        <div className="flex justify-center pb-4">
+      {/* One compact row, so the tabs and the computer screen start near the top. */}
+      <div data-testid="bot-profile-header" className="flex items-start gap-3 pb-4">
+        <div className="shrink-0">
           <AvatarStudioPopover
             value={color}
             identity={bot.id}
             status={bot.status}
-            size={76}
+            size={40}
             avatarSet={avatarSet}
             onChange={(newColor, nextAvatarSet) => {
               setColor(newColor);
@@ -513,19 +514,21 @@ export function BotSettings({
             }}
           />
         </div>
-        <InlineProfileField
-          label={t`Name`}
-          editLabel={t`Edit name`}
-          value={name}
-          maxLength={BOT_NAME_MAX_LENGTH}
-          className="text-heading2 font-semibold"
-          onCommit={(value) => {
-            if (!value.trim()) return;
-            setName(value.trim());
-            void enqueueSave({ name: value });
-          }}
-        />
-        <BotEmail bot={{ id: bot.id, name }} />
+        <div className="flex min-w-0 flex-1 flex-col items-start pt-0.5">
+          <InlineProfileField
+            label={t`Name`}
+            editLabel={t`Edit name`}
+            value={name}
+            maxLength={BOT_NAME_MAX_LENGTH}
+            className="-ms-2 text-heading3 font-semibold"
+            onCommit={(value) => {
+              if (!value.trim()) return;
+              setName(value.trim());
+              void enqueueSave({ name: value });
+            }}
+          />
+          <BotEmail bot={{ id: bot.id, name }} />
+        </div>
       </div>
       <Tabs value={tab} onValueChange={(next) => onTabChange?.(next as BotPanelTab)}>
         <TabsList className="w-full">
@@ -723,7 +726,7 @@ function InlineProfileField({
       aria-label={label}
       value={draft}
       maxLength={maxLength}
-      className={`h-auto border-transparent bg-transparent p-0 text-center shadow-none ${className}`}
+      className={`h-auto border-transparent bg-transparent p-0 shadow-none ${className}`}
       onChange={(event) => setDraft(event.target.value)}
       onBlur={commit}
       onKeyDown={(event) => {
