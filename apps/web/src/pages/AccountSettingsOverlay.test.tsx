@@ -613,7 +613,7 @@ it("closes the name editor before refresh finishes and ignores a refresh failure
   }
 });
 
-it("offers Graphite next to System, Light and Dark", async () => {
+it("offers Graphite, Midnight and Paper next to System, Light and Dark", async () => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   const container = document.createElement("div");
   document.body.append(container);
@@ -623,7 +623,9 @@ it("offers Graphite next to System, Light and Dark", async () => {
       root.render(<GeneralSettingsPanels name="Jamie" />);
     });
     const options = [...container.querySelectorAll("button")].map((button) => button.textContent);
-    expect(options).toEqual(expect.arrayContaining(["System", "Light", "Dark", "Graphite"]));
+    expect(options).toEqual(
+      expect.arrayContaining(["System", "Light", "Dark", "Graphite", "Midnight", "Paper"]),
+    );
   } finally {
     await act(async () => root.unmount());
     container.remove();

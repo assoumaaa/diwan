@@ -21,6 +21,27 @@ import {
   webTokensForAppearance,
 } from "./index.js";
 
+describe("palette themes", () => {
+  it("render as the mode they sit on", () => {
+    expect(resolveAppearance("midnight", "light")).toBe("dark");
+    expect(resolveAppearance("paper", "dark")).toBe("light");
+    expect(normalizeAppearancePreference("paper")).toBe("paper");
+  });
+
+  it("each ship a solid block over their mode", () => {
+    const css = renderTokensCss();
+    for (const [name, scheme] of [
+      ["midnight", "dark"],
+      ["paper", "light"],
+    ]) {
+      const start = css.indexOf(`:root[data-palette="${name}"]`);
+      const block = css.slice(start, css.indexOf("}", start));
+      expect(block).toContain(`color-scheme: ${scheme};`);
+      expect(block).not.toMatch(/--background: (rgba|#[0-9a-f]{8};)/);
+    }
+  });
+});
+
 describe("graphite theme", () => {
   it("is a saved preference that renders as dark mode", () => {
     expect(normalizeAppearancePreference("graphite")).toBe("graphite");
@@ -31,7 +52,7 @@ describe("graphite theme", () => {
     const css = renderTokensCss();
     const block = css.slice(css.indexOf(':root[data-palette="graphite"]'));
     expect(block).toContain("color-scheme: dark;");
-    expect(block).toContain("--background: #35383d;");
+    expect(block).toContain("--background: #303338;");
     expect(block).not.toMatch(/--background: (rgba|#[0-9a-f]{8};)/);
   });
 });

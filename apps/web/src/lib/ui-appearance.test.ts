@@ -7,10 +7,12 @@ describe("ui-appearance", () => {
     expect(readSystemAppearance({ matches: false })).toBe("dark");
   });
 
-  it("marks the root with the graphite palette only while graphite is chosen", () => {
+  it("marks the root with a palette only while that palette is chosen", () => {
     const root = { dataset: {} as DOMStringMap };
     applyPalette("graphite", root as unknown as HTMLElement);
     expect(root.dataset.palette).toBe("graphite");
+    applyPalette("paper", root as unknown as HTMLElement);
+    expect(root.dataset.palette).toBe("paper");
     applyPalette("dark", root as unknown as HTMLElement);
     expect(root.dataset.palette).toBeUndefined();
   });

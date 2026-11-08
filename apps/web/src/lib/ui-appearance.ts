@@ -1,5 +1,6 @@
 import type { AppearancePreference, ResolvedAppearance } from "@rakazo/ui-tokens";
 import {
+  isPaletteName,
   persistAppearancePreference,
   resolveAppearance,
   resolveAppearancePreference,
@@ -34,7 +35,7 @@ export function applyResolvedAppearance(
   }
 }
 
-/** Graphite layers its own colors over dark, keyed on `data-palette` in tokens.css. */
+/** Graphite, Midnight and Paper layer their own colors over dark or light, keyed on `data-palette` in tokens.css. */
 export function applyPalette(
   preference: AppearancePreference,
   root: HTMLElement | null = typeof document !== "undefined" ? document.documentElement : null,
@@ -42,8 +43,8 @@ export function applyPalette(
   if (!root) {
     return;
   }
-  if (preference === "graphite") {
-    root.dataset.palette = "graphite";
+  if (isPaletteName(preference)) {
+    root.dataset.palette = preference;
   } else {
     delete root.dataset.palette;
   }

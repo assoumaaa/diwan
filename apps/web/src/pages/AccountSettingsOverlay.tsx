@@ -818,6 +818,8 @@ function AppearancePicker({
     { value: "light", label: t`Light` },
     { value: "dark", label: t`Dark` },
     { value: "graphite", label: t`Graphite` },
+    { value: "midnight", label: t`Midnight` },
+    { value: "paper", label: t`Paper` },
   ];
 
   return (
@@ -829,7 +831,7 @@ function AppearancePicker({
         if (next) onChange(next as AppearancePreference);
       }}
       spacing={1}
-      className="grid min-w-0 grid-cols-4 rounded-lg bg-muted p-1"
+      className="grid min-w-0 grid-cols-3 rounded-lg bg-muted p-1"
     >
       {options.map((option) => (
         <ToggleGroupItem
