@@ -9,7 +9,7 @@ import type {
 import { writeSaved } from "@rakazo/core/query";
 import { useQuery } from "@tanstack/react-query";
 import type { RefObject } from "react";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { lazyOverlay } from "../../components/ErrorBoundary";
 import type { connectedAppMarks } from "../../lib/connected-apps";
 import type { SpaceQueries } from "../../lib/query";
@@ -67,6 +67,10 @@ export function AppOverlays({
   onOpenBot: (bot: Bot) => void;
 }) {
   const openTemplates = () => setOverlay({ kind: "templates" });
+  // Loaded up front so Connect apps opens at once and its icons start loading with it.
+  useEffect(() => {
+    void PluginsOverlay.preload().catch(() => undefined);
+  }, []);
   return (
     <>
       {overlay?.kind === "integrations" ? (

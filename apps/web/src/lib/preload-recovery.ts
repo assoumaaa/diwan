@@ -1,5 +1,5 @@
-import type { ComponentType } from "react";
-import { lazy, useLayoutEffect, useState } from "react";
+import type { ComponentType, ElementType } from "react";
+import { createElement, lazy, useLayoutEffect, useState } from "react";
 
 const PRELOAD_RECOVERY_KEY = "rk:preload-recovery";
 const PRELOAD_RECOVERY_STATE_KEY = "rk:preload-recovery-state";
@@ -53,9 +53,25 @@ export function importChunk<T>(load: () => Promise<T>): Promise<T> {
   });
 }
 
-/** `React.lazy` for a named export, held pending like `importChunk` during recovery. */
-export function lazyComponent<Props>(load: () => Promise<ComponentType<Props>>) {
-  return lazy(() => importChunk(load).then((component) => ({ default: component })));
+/**
+ * `React.lazy` for a named export, held pending like `importChunk` during recovery. Once its chunk
+ * has loaded, through `preload` or an earlier mount, it mounts without suspending: React reveals
+ * a suspended boundary no sooner than 300 ms after its fallback, however fast the chunk arrives.
+ */
+export function lazyComponent<Props extends object>(load: () => Promise<ComponentType<Props>>) {
+  let loaded: ComponentType<Props> | undefined;
+  const preload = () =>
+    importChunk(load).then((component) => {
+      loaded = component;
+      return component;
+    });
+  const Lazy = lazy(() => preload().then((component) => ({ default: component })));
+  function LazyComponent(props: Props) {
+    // Picked once per mount, since switching element types would remount what it renders.
+    const [Component] = useState<ElementType<Props>>(() => loaded ?? Lazy);
+    return createElement(Component, props);
+  }
+  return Object.assign(LazyComponent, { preload });
 }
 
 type PreloadRecoveryWindow = Pick<

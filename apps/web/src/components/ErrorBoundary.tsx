@@ -49,7 +49,7 @@ export function lazyOverlay<Props extends { onClose: () => void }>(
   load: () => Promise<ComponentType<Props>>,
 ) {
   const Overlay = lazyComponent(load);
-  return function LazyOverlay(props: Props) {
+  function LazyOverlay(props: Props) {
     return (
       <ErrorBoundary
         fallback={
@@ -80,5 +80,6 @@ export function lazyOverlay<Props extends { onClose: () => void }>(
         <Overlay {...props} />
       </ErrorBoundary>
     );
-  };
+  }
+  return Object.assign(LazyOverlay, { preload: Overlay.preload });
 }

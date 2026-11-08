@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
 import type { ReactNode } from "react";
-import { act, Suspense } from "react";
+import { act, Suspense, startTransition, useEffect } from "react";
+import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -170,5 +171,52 @@ describe("preload recovery", () => {
 
     expect(await renderLazy(failChunk)).toBe("failed");
     expect(reload).not.toHaveBeenCalled();
+  });
+
+  it("mounts a preloaded component without showing its fallback", async () => {
+    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    const Section = lazyComponent(async () => () => "ready");
+    await Section.preload();
+    const container = document.createElement("div");
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <Suspense fallback="loading">
+          <Section />
+        </Suspense>,
+      );
+    });
+
+    expect(container.textContent).toBe("ready");
+    act(() => root.unmount());
+  });
+
+  it("keeps a component that mounted while its chunk loaded when it renders again", async () => {
+    let mounts = 0;
+    function Label({ text }: { text: string }) {
+      useEffect(() => {
+        mounts += 1;
+      }, []);
+      return text;
+    }
+    const Section = lazyComponent(async () => Label);
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    const render = (text?: string) =>
+      root.render(
+        <Suspense fallback="loading">{text ? <Section text={text} /> : "shell"}</Suspense>,
+      );
+    flushSync(() => render());
+
+    // A transition waits for a chunk that is already loaded and replays only the lazy part.
+    startTransition(() => render("first"));
+    await vi.waitFor(() => expect(container.textContent).toBe("first"));
+    flushSync(() => render("second"));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(container.textContent).toBe("second");
+    expect(mounts).toBe(1);
+    root.unmount();
   });
 });
