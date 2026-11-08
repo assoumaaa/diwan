@@ -1,4 +1,4 @@
-# Self-host Rakazo
+# Self-host Diwan
 
 รัน API, worker, เว็บ, ฐานข้อมูล และ computer ของ bot บนเครื่องที่คุณควบคุม
 

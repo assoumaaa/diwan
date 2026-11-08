@@ -461,7 +461,7 @@ export async function retryRunSetup(
   const setupMessage = redactSecrets(userRunError(setupError), runSecrets);
   const reportedSetupError = sanitizedError(setupError, (text) => redactSecrets(text, runSecrets));
   // An outage at the computer provider is retried like any setup failure, but is not a
-  // Rakazo bug to report.
+  // Diwan bug to report.
   const providerOutage =
     setupError instanceof SandboxUnavailableError || setupError instanceof SandboxUnresponsiveError;
   // A lost lease aborted setup on purpose; whatever that interrupted is not a failure.

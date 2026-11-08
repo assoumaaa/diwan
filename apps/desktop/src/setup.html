@@ -6,36 +6,38 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; form-action 'none'; base-uri 'none'"
     />
-    <title>Set up Rakazo</title>
+    <title>Set up Diwan</title>
     <link rel="stylesheet" href="tokens.css" />
     <link rel="stylesheet" href="setup.css" />
   </head>
   <body>
     <header class="titlebar">
-      <span class="titlebar-name">Rakazo</span>
-      <button id="quit" class="titlebar-quit" type="button" title="Quit Rakazo">Quit</button>
+      <span class="titlebar-name">Diwan</span>
+      <button id="quit" class="titlebar-quit" type="button" title="Quit Diwan">Quit</button>
     </header>
 
     <main class="shell">
-      <h1 class="heading">Welcome to Rakazo</h1>
+      <h1 class="heading">Welcome to Diwan</h1>
       <p class="subheading">Choose which server this app should use.</p>
 
       <form id="setup" novalidate>
         <fieldset class="choices">
           <legend class="sr-only">Instance</legend>
 
-          <label class="choice" for="mode-cloud">
-            <input id="mode-cloud" type="radio" name="mode" value="cloud" checked />
+          <!-- Diwan connects to your own server; the hosted service and the
+               downloaded upstream stack stay hidden. -->
+          <label class="choice" for="mode-cloud" hidden>
+            <input id="mode-cloud" type="radio" name="mode" value="cloud" />
             <span class="choice-title">Rakazo Cloud</span>
           </label>
 
-          <label class="choice" for="mode-new">
+          <label class="choice" for="mode-new" hidden>
             <input id="mode-new" type="radio" name="mode" value="new" />
             <span class="choice-title">This computer</span>
           </label>
 
           <label class="choice" for="mode-existing">
-            <input id="mode-existing" type="radio" name="mode" value="existing" />
+            <input id="mode-existing" type="radio" name="mode" value="existing" checked />
             <span class="choice-title">Existing instance</span>
           </label>
         </fieldset>

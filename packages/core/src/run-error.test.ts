@@ -474,7 +474,7 @@ describe("normalizeRunError", () => {
       });
     });
 
-    it("keeps the advice when Rakazo credits run out", () => {
+    it("keeps the advice when Diwan credits run out", () => {
       expect(normalizeRunError(MODEL_CREDITS_EXHAUSTED_ERROR)).toEqual({
         summary: MODEL_CREDITS_EXHAUSTED_ERROR,
         details: MODEL_CREDITS_EXHAUSTED_ERROR,

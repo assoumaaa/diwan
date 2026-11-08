@@ -879,8 +879,8 @@ msgid "Allow once"
 msgstr "Permitir uma vez"
 
 #: src/lib/dictation.ts
-msgid "Allow Rakazo to use Speech Recognition and the microphone in System Settings."
-msgstr "Permita que o Rakazo use o Reconhecimento de Fala e o microfone nos Ajustes do Sistema."
+msgid "Allow Diwan to use Speech Recognition and the microphone in System Settings."
+msgstr "Permita que o Diwan use o Reconhecimento de Fala e o microfone nos Ajustes do Sistema."
 
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 msgid "Allow writing"
@@ -1632,8 +1632,8 @@ msgstr "Escolher pasta"
 
 #: src/components/ModelCredits.tsx
 #: src/components/SubscriptionGate.tsx
-msgid "Choose how to use Rakazo"
-msgstr "Escolha como usar o Rakazo"
+msgid "Choose how to use Diwan"
+msgstr "Escolha como usar o Diwan"
 
 #: src/components/vault/VaultItemEditor.tsx
 msgid "City"
@@ -1969,8 +1969,8 @@ msgstr "Conecte primeiro o provedor deste modelo."
 
 #. js-lingui-explicit-id
 #: src/lib/run-error.ts
-msgid "Connect your own API key in Models or choose Rakazo credits in Billing."
-msgstr "Conecte sua própria chave de API em Modelos ou escolha créditos Rakazo em Faturamento."
+msgid "Connect your own API key in Models or choose Diwan credits in Billing."
+msgstr "Conecte sua própria chave de API em Modelos ou escolha créditos Diwan em Faturamento."
 
 #: src/components/bot-templates/bot-templates-dialog.tsx
 #: src/components/ComputerDeviceSettings.tsx
@@ -2790,8 +2790,8 @@ msgid "Create space"
 msgstr "Criar espaço"
 
 #: src/pages/Auth.tsx
-msgid "Create your Rakazo"
-msgstr "Crie o seu Rakazo"
+msgid "Create your Diwan"
+msgstr "Crie o seu Diwan"
 
 #: src/components/AskCard.tsx
 msgid "Created"
@@ -3277,8 +3277,8 @@ msgid "Ends {day}"
 msgstr "Termina em {day}"
 
 #: src/components/GitHubStarPrompt.tsx
-msgid "Enjoying Rakazo?"
-msgstr "Está gostando do Rakazo?"
+msgid "Enjoying Diwan?"
+msgstr "Está gostando do Diwan?"
 
 #: src/lib/user-error.ts
 msgid "Enter a password"
@@ -3804,8 +3804,8 @@ msgid "How to check"
 msgstr "Como verificar"
 
 #: src/components/SignupSurvey.tsx
-msgid "How will you use Rakazo?"
-msgstr "Como você vai usar o Rakazo?"
+msgid "How will you use Diwan?"
+msgstr "Como você vai usar o Diwan?"
 
 #: src/pages/shell/computer-release-actions.tsx
 msgid "I’m done"
@@ -4924,8 +4924,8 @@ msgid "Not imported"
 msgstr "Não importado"
 
 #: src/pages/shell/import-status.ts
-msgid "Not in Rakazo's catalog"
-msgstr "Fora do catálogo do Rakazo"
+msgid "Not in Diwan's catalog"
+msgstr "Fora do catálogo do Diwan"
 
 #: src/pages/plugins/plugin-browse.tsx
 msgid "Not in the plugin catalog"
@@ -4938,12 +4938,12 @@ msgstr "Agora não"
 
 #: src/pages/shell/agent-import-plan.tsx
 #: src/pages/shell/import-status.ts
-msgid "Not supported in Rakazo"
-msgstr "Não compatível com o Rakazo"
+msgid "Not supported in Diwan"
+msgstr "Não compatível com o Diwan"
 
 #: src/pages/shell/agent-import-plan.tsx
-msgid "Not used by Rakazo"
-msgstr "Não usado pelo Rakazo"
+msgid "Not used by Diwan"
+msgstr "Não usado pelo Diwan"
 
 #: src/components/McpServerHealthLine.tsx
 #: src/pages/plugins/parts.tsx
@@ -5084,8 +5084,8 @@ msgstr "Abrir a navegação"
 #: src/components/pages/PublicPageShell.tsx
 #: src/pages/Invite.tsx
 #: src/pages/SharedPage.tsx
-msgid "Open Rakazo"
-msgstr "Abrir o Rakazo"
+msgid "Open Diwan"
+msgstr "Abrir o Diwan"
 
 #: src/pages/ScratchpadSection.tsx
 msgid "Open work"
@@ -5263,8 +5263,8 @@ msgid "Paste a replacement key"
 msgstr "Cole uma chave de substituição"
 
 #: src/pages/model-settings/compatible-model-fields.tsx
-msgid "Paste the OpenAI-compatible address from your server. Rakazo adds /v1 if needed."
-msgstr "Cole o endereço compatível com OpenAI do seu servidor. Rakazo adiciona /v1 se necessário."
+msgid "Paste the OpenAI-compatible address from your server. Diwan adds /v1 if needed."
+msgstr "Cole o endereço compatível com OpenAI do seu servidor. Diwan adiciona /v1 se necessário."
 
 #: src/pages/shell/agent-import.tsx
 msgid "Paste the reply"
@@ -5460,16 +5460,16 @@ msgstr "Na fila"
 
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
-msgid "Rakazo"
-msgstr "Rakazo"
+msgid "Diwan"
+msgstr "Diwan"
 
 #: src/pages/onboarding/use-onboarding-model.ts
-msgid "Rakazo credits"
-msgstr "Créditos do Rakazo"
+msgid "Diwan credits"
+msgstr "Créditos do Diwan"
 
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
-msgid "rakazo-shared and IDs starting with bot- are reserved for Rakazo."
-msgstr "rakazo-shared e IDs que começam com bot- são reservados para o Rakazo."
+msgid "rakazo-shared and IDs starting with bot- are reserved for Diwan."
+msgstr "rakazo-shared e IDs que começam com bot- são reservados para o Diwan."
 
 #: src/pages/shell/message-hover-actions.tsx
 msgid "React"
@@ -5505,8 +5505,8 @@ msgid "Recall and write"
 msgstr "Recuperar e escrever"
 
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
-msgid "Recall from this peer; save to Rakazo’s own peers."
-msgstr "Consultar este peer; salvar nos próprios peers do Rakazo."
+msgid "Recall from this peer; save to Diwan’s own peers."
+msgstr "Consultar este peer; salvar nos próprios peers do Diwan."
 
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 msgid "Recall only"
@@ -5937,8 +5937,8 @@ msgstr "Voltar à chamada com {0}"
 
 #: src/pages/McpOAuthCallback.tsx
 #: src/pages/SlackInstallCallback.tsx
-msgid "Return to Rakazo"
-msgstr "Retorno a Rakazo"
+msgid "Return to Diwan"
+msgstr "Retorno a Diwan"
 
 #: src/lib/model-connection-preflight.ts
 msgid "Review provider settings and test again."
@@ -6440,8 +6440,8 @@ msgid "Sign in at <0>{0}</0>, then paste the code here."
 msgstr "Entre em <0>{0}</0> e cole o código aqui."
 
 #: src/pages/Auth.tsx
-msgid "Sign in to Rakazo"
-msgstr "Entrar no Rakazo"
+msgid "Sign in to Diwan"
+msgstr "Entrar no Diwan"
 
 #: src/lib/user-error.ts
 msgid "Sign in to your existing account to link SSO"
@@ -7128,8 +7128,8 @@ msgid "This server's tool result does not fit the model. Turn off Keep tool resu
 msgstr "O resultado da ferramenta deste servidor não cabe no modelo. Desative Manter resultados das ferramentas inteiros para esse servidor ou escolha outro modelo."
 
 #: src/pages/model-settings/connection-controls.tsx
-msgid "This subscription sign-in is not available in Rakazo yet. Use a deployment credential or choose another provider."
-msgstr "Este login de assinatura ainda não está disponível no Rakazo. Use uma credencial de implantação ou escolha outro provedor."
+msgid "This subscription sign-in is not available in Diwan yet. Use a deployment credential or choose another provider."
+msgstr "Este login de assinatura ainda não está disponível no Diwan. Use uma credencial de implantação ou escolha outro provedor."
 
 #: src/components/bot-templates/bot-templates-dialog.tsx
 msgid "This template was just updated. Check it again."
@@ -7485,8 +7485,8 @@ msgid "Use Protected input for passwords."
 msgstr "Use a Entrada protegida para senhas."
 
 #: src/components/ModelCredits.tsx
-msgid "Use Rakazo credits"
-msgstr "Usar créditos do Rakazo"
+msgid "Use Diwan credits"
+msgstr "Usar créditos do Diwan"
 
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 msgid "Use up to 512 letters, digits, _ or -."
@@ -7633,8 +7633,8 @@ msgid "Weekly"
 msgstr "Semanal"
 
 #: src/components/SignupSurvey.tsx
-msgid "Welcome to Rakazo"
-msgstr "Boas-vindas ao Rakazo"
+msgid "Welcome to Diwan"
+msgstr "Boas-vindas ao Diwan"
 
 #: src/pages/shell/dialogs.tsx
 msgid "What about its memories?"
@@ -7645,8 +7645,8 @@ msgid "What can this space use?"
 msgstr "O que este espaço pode usar?"
 
 #: src/components/SignupSurvey.tsx
-msgid "What do you most want Rakazo to help with?"
-msgstr "Com o que você mais quer que o Rakazo ajude?"
+msgid "What do you most want Diwan to help with?"
+msgstr "Com o que você mais quer que o Diwan ajude?"
 
 #: src/pages/shell/message-cards.tsx
 msgid "What do you want me on first?"
