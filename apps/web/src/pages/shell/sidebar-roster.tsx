@@ -311,6 +311,12 @@ export function SidebarRoster({
                 const rowSameList =
                   Boolean(draggedBotId) && groupBotIds.includes(draggedBotId ?? "");
                 const rowDropKey = `row:${item.kind}:${item.chat.id}`;
+                const miniDescribedBy = [
+                  item.chat.unread ? `roster-unread-${item.kind}-${item.chat.id}` : null,
+                  compactStatusLabel ? `roster-status-${item.kind}-${item.chat.id}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" ");
                 const avatar =
                   item.kind === "bot" ? (
                     <BotAvatar
@@ -339,18 +345,7 @@ export function SidebarRoster({
                     data-roster-error={rowError && (compact || mini) ? "true" : undefined}
                     aria-current={selected ? "page" : undefined}
                     aria-label={mini ? item.chat.name : undefined}
-                    aria-describedby={
-                      mini
-                        ? [
-                            item.chat.unread ? `roster-unread-${item.kind}-${item.chat.id}` : null,
-                            compactStatusLabel
-                              ? `roster-status-${item.kind}-${item.chat.id}`
-                              : null,
-                          ]
-                            .filter(Boolean)
-                            .join(" ") || undefined
-                        : undefined
-                    }
+                    aria-describedby={mini && miniDescribedBy ? miniDescribedBy : undefined}
                     aria-keyshortcuts={
                       item.kind === "bot" ? "Alt+ArrowUp Alt+ArrowDown" : undefined
                     }
@@ -415,42 +410,36 @@ export function SidebarRoster({
                         : "group-hover/row:bg-accent"
                     }`}
                   >
-                    {mini ? (
-                      <span className="relative shrink-0">
-                        {avatar}
-                        {rowError ? (
+                    {/* One wrapper in both modes, so collapsing the sidebar keeps the avatar mounted. */}
+                    <span className="relative shrink-0">
+                      {avatar}
+                      {mini && rowError ? (
+                        <span
+                          aria-hidden="true"
+                          className="absolute -end-0.5 bottom-0 size-2 rounded-full bg-destructive ring-2 ring-sidebar"
+                        />
+                      ) : null}
+                      {mini && compactStatusLabel ? (
+                        <span className="sr-only" id={`roster-status-${item.kind}-${item.chat.id}`}>
+                          {compactStatusLabel}
+                        </span>
+                      ) : null}
+                      {mini && item.chat.unread ? (
+                        <>
                           <span
                             aria-hidden="true"
-                            className="absolute -end-0.5 bottom-0 size-2 rounded-full bg-destructive ring-2 ring-sidebar"
+                            data-roster-unread-dot
+                            className="absolute -end-0.5 top-0 size-2 rounded-full bg-unread ring-2 ring-sidebar"
                           />
-                        ) : null}
-                        {compactStatusLabel ? (
                           <span
+                            id={`roster-unread-${item.kind}-${item.chat.id}`}
                             className="sr-only"
-                            id={`roster-status-${item.kind}-${item.chat.id}`}
                           >
-                            {compactStatusLabel}
+                            <Trans> (unread)</Trans>
                           </span>
-                        ) : null}
-                        {item.chat.unread ? (
-                          <>
-                            <span
-                              aria-hidden="true"
-                              data-roster-unread-dot
-                              className="absolute -end-0.5 top-0 size-2 rounded-full bg-unread ring-2 ring-sidebar"
-                            />
-                            <span
-                              id={`roster-unread-${item.kind}-${item.chat.id}`}
-                              className="sr-only"
-                            >
-                              <Trans> (unread)</Trans>
-                            </span>
-                          </>
-                        ) : null}
-                      </span>
-                    ) : (
-                      avatar
-                    )}
+                        </>
+                      ) : null}
+                    </span>
                     {!mini ? (
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-1.5">
@@ -559,20 +548,18 @@ export function SidebarRoster({
                         )
                       }
                     >
-                      {mini ? (
-                        <IconTooltip
-                          side="inline-end"
-                          label={
-                            compactStatusLabel
-                              ? `${item.chat.name}: ${compactStatusLabel}`
-                              : item.chat.name
-                          }
-                        >
-                          {chatTrigger}
-                        </IconTooltip>
-                      ) : (
-                        chatTrigger
-                      )}
+                      {/* Always mounted and only enabled in the mini sidebar, so the row keeps one tree. */}
+                      <IconTooltip
+                        side="inline-end"
+                        disabled={!mini}
+                        label={
+                          compactStatusLabel
+                            ? `${item.chat.name}: ${compactStatusLabel}`
+                            : item.chat.name
+                        }
+                      >
+                        {chatTrigger}
+                      </IconTooltip>
                       {botMenu?.kind === item.kind && botMenu.id === item.chat.id ? (
                         <Suspense fallback={null}>{botMenuContent}</Suspense>
                       ) : null}

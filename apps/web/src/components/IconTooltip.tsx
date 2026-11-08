@@ -5,14 +5,16 @@ import type { ComponentProps, ReactElement } from "react";
 export function IconTooltip({
   label,
   side,
+  disabled,
   children,
 }: {
   label: string;
   side?: ComponentProps<typeof TooltipContent>["side"];
+  disabled?: boolean;
   children: ReactElement;
 }) {
   return (
-    <Tooltip>
+    <Tooltip disabled={disabled}>
       <TooltipTrigger render={children} />
       <TooltipContent side={side}>{label}</TooltipContent>
     </Tooltip>

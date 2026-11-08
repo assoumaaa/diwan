@@ -3,11 +3,15 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { BotsSidebarLayout } from "./sidebar-layout";
+import { BotsSidebarLayout, BotsSidebarWidthScope, useBotsSidebarWidth } from "./sidebar-layout";
 
 vi.mock("@lingui/react/macro", () => ({
   useLingui: () => ({ t: (strings: TemplateStringsArray) => strings.join("") }),
 }));
+
+function SettledWidth() {
+  return <output>{useBotsSidebarWidth()}</output>;
+}
 
 let root: ReturnType<typeof createRoot>;
 let host: HTMLDivElement;
@@ -33,7 +37,10 @@ beforeEach(async () => {
         onPreviewCollapsedChange={() => undefined}
         computerOpen={false}
       >
-        <div data-slot="sidebar" />
+        <BotsSidebarWidthScope>
+          <div data-slot="sidebar" />
+        </BotsSidebarWidthScope>
+        <SettledWidth />
       </BotsSidebarLayout>,
     ),
   );
@@ -55,21 +62,26 @@ async function pointer(type: string, x: number) {
   await act(async () => host.querySelector("hr")!.dispatchEvent(event));
 }
 
-const width = (element: Element | null) =>
+const width = (element: Element | null | undefined) =>
   (element as HTMLElement).style.getPropertyValue("--sidebar-width");
 
-it("restyles only the sidebar while dragging, and the whole shell once on release", async () => {
+it("keeps the width on the sidebar alone, and gives the rest of the shell the settled width", async () => {
   const shell = host.querySelector('[data-slot="sidebar-wrapper"]');
-  const sidebar = host.querySelector('[data-slot="sidebar"]');
-  expect(width(shell)).toBe("316px");
+  const scope = host.querySelector('[data-slot="sidebar"]')?.parentElement;
+  const settled = () => host.querySelector("output")?.textContent;
+  const shellWidth = width(shell);
+  expect(width(scope)).toBe("316px");
+  expect(settled()).toBe("316");
 
   await pointer("pointerdown", 316);
   await pointer("pointermove", 360);
   await pointer("pointermove", 400);
-  expect(width(shell)).toBe("316px");
-  expect(width(sidebar)).toBe("400px");
+  expect(width(scope)).toBe("400px");
+  expect(settled()).toBe("316");
+  expect(width(shell)).toBe(shellWidth);
 
   await pointer("pointerup", 400);
-  expect(width(shell)).toBe("400px");
-  expect(width(sidebar)).toBe("");
+  expect(width(scope)).toBe("400px");
+  expect(settled()).toBe("400");
+  expect(width(shell)).toBe(shellWidth);
 });

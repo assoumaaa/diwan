@@ -26,6 +26,7 @@ import { ActivityList } from "../ActivityList";
 import { SpaceSearchResults } from "../SpaceSearch";
 import type { SettingsSection } from "../shell-overlay";
 import { SidebarHeader } from "./sidebar-header";
+import { BotsSidebarWidthScope } from "./sidebar-layout";
 import type { SidebarSearch } from "./use-sidebar-search";
 
 /** Focuses the search box once it renders, its text selected so typing replaces it. */
@@ -121,7 +122,7 @@ export function ShellSidebar({
     activityFilterCount,
   } = search;
   return (
-    <>
+    <BotsSidebarWidthScope>
       <button
         type="button"
         aria-label={t`Close navigation`}
@@ -302,7 +303,7 @@ export function ShellSidebar({
           openSpaceChat={openSpaceChat}
         />
       </Sidebar>
-    </>
+    </BotsSidebarWidthScope>
   );
 }
 

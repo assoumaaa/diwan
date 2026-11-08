@@ -39,12 +39,8 @@ export function useSidebarResize({
   } | null>(null);
   const maxWidth = maximumBotsSidebarWidth(viewportWidth);
   const expandedWidth = clampBotsSidebarWidth(preferredWidth, viewportWidth);
-  const width =
-    dragWidth !== null
-      ? Math.min(maxWidth, dragWidth)
-      : collapsed
-        ? BOTS_SIDEBAR_MINI_WIDTH
-        : expandedWidth;
+  const settledWidth = collapsed ? BOTS_SIDEBAR_MINI_WIDTH : expandedWidth;
+  const width = dragWidth !== null ? Math.min(maxWidth, dragWidth) : settledWidth;
 
   useEffect(() => {
     setPreferredWidth(readBotsSidebarWidth(userId));
@@ -169,6 +165,7 @@ export function useSidebarResize({
 
   return {
     width,
+    settledWidth,
     resizing: dragWidth !== null,
     handleProps,
   };
