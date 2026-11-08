@@ -1,10 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { applyResolvedAppearance, readSystemAppearance } from "./ui-appearance";
+import { applyPalette, applyResolvedAppearance, readSystemAppearance } from "./ui-appearance";
 
 describe("ui-appearance", () => {
   it("treats matching light media as light", () => {
     expect(readSystemAppearance({ matches: true })).toBe("light");
     expect(readSystemAppearance({ matches: false })).toBe("dark");
+  });
+
+  it("marks the root with the graphite palette only while graphite is chosen", () => {
+    const root = { dataset: {} as DOMStringMap };
+    applyPalette("graphite", root as unknown as HTMLElement);
+    expect(root.dataset.palette).toBe("graphite");
+    applyPalette("dark", root as unknown as HTMLElement);
+    expect(root.dataset.palette).toBeUndefined();
   });
 
   it("writes data-theme and color-scheme on the root", () => {

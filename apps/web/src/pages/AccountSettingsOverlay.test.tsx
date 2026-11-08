@@ -612,3 +612,21 @@ it("closes the name editor before refresh finishes and ignores a refresh failure
     await editor.cleanup();
   }
 });
+
+it("offers Graphite next to System, Light and Dark", async () => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      root.render(<GeneralSettingsPanels name="Jamie" />);
+    });
+    const options = [...container.querySelectorAll("button")].map((button) => button.textContent);
+    expect(options).toEqual(expect.arrayContaining(["System", "Light", "Dark", "Graphite"]));
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+    vi.unstubAllGlobals();
+  }
+});

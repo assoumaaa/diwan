@@ -21,6 +21,21 @@ import {
   webTokensForAppearance,
 } from "./index.js";
 
+describe("graphite theme", () => {
+  it("is a saved preference that renders as dark mode", () => {
+    expect(normalizeAppearancePreference("graphite")).toBe("graphite");
+    expect(resolveAppearance("graphite", "light")).toBe("dark");
+  });
+
+  it("ships its own solid colors on top of dark", () => {
+    const css = renderTokensCss();
+    const block = css.slice(css.indexOf(':root[data-palette="graphite"]'));
+    expect(block).toContain("color-scheme: dark;");
+    expect(block).toContain("--background: #35383d;");
+    expect(block).not.toMatch(/--background: (rgba|#[0-9a-f]{8};)/);
+  });
+});
+
 describe("appearance preference", () => {
   it("defaults unknown values to system", () => {
     expect(normalizeAppearancePreference(null)).toBe("system");

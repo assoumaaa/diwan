@@ -34,11 +34,28 @@ export function applyResolvedAppearance(
   }
 }
 
+/** Graphite layers its own colors over dark, keyed on `data-palette` in tokens.css. */
+export function applyPalette(
+  preference: AppearancePreference,
+  root: HTMLElement | null = typeof document !== "undefined" ? document.documentElement : null,
+): void {
+  if (!root) {
+    return;
+  }
+  if (preference === "graphite") {
+    root.dataset.palette = "graphite";
+  } else {
+    delete root.dataset.palette;
+  }
+}
+
 export function applyUiAppearance(
   preference: AppearancePreference = resolveAppearancePreference(),
   system: ResolvedAppearance = readSystemAppearance(),
 ): ResolvedAppearance {
   const resolved = resolveAppearance(preference, system);
+  // Before the theme, so the browser's theme color reads the palette's background.
+  applyPalette(preference);
   applyResolvedAppearance(resolved);
   return resolved;
 }

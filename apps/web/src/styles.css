@@ -121,3 +121,12 @@ body,
   background-color: var(--primary);
   color: var(--primary-foreground);
 }
+
+/* Graphite floats the bots sidebar as an inset panel on the window background. */
+:root[data-palette="graphite"] [data-slot="sidebar-container"] {
+  padding: 0.5rem;
+  border-width: 0;
+}
+:root[data-palette="graphite"] [data-slot="sidebar-inner"] {
+  border-radius: 1rem;
+}
