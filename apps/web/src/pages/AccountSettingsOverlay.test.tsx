@@ -122,6 +122,7 @@ import {
   composerEnterToSendPreference,
 } from "../lib/composer-enter-to-send-pref";
 import { remoteImagesPreference } from "../lib/remote-images-preference";
+import { RUN_SOUNDS_STORAGE_KEY } from "../lib/run-sounds";
 import { TOOL_ACTIVITY_STORAGE_KEY } from "../lib/tool-activity-preference";
 import { GeneralSettingsPanels, UsageSettingsPanel } from "./AccountSettingsOverlay";
 
@@ -158,6 +159,40 @@ it("flips the stored tool activity preference from the settings toggle", async (
 
     expect(localStorage.getItem(TOOL_ACTIVITY_STORAGE_KEY)).toBe("off");
     expect(toggle.getAttribute("aria-checked")).toBe("false");
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+    vi.unstubAllGlobals();
+  }
+});
+
+it("turns run sounds off and on from the settings toggle", async () => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      root.render(<GeneralSettingsPanels name="Jamie" />);
+    });
+
+    const toggle = container.querySelector<HTMLButtonElement>('[data-testid="run-sounds-toggle"]');
+    if (!toggle) throw new Error("Missing run sounds toggle");
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+
+    await act(async () => {
+      toggle.click();
+    });
+
+    expect(localStorage.getItem(RUN_SOUNDS_STORAGE_KEY)).toBe("off");
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+
+    await act(async () => {
+      toggle.click();
+    });
+
+    expect(localStorage.getItem(RUN_SOUNDS_STORAGE_KEY)).toBe("on");
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
   } finally {
     await act(async () => root.unmount());
     container.remove();

@@ -33,6 +33,7 @@ import { markOnce } from "../../lib/performance";
 import type { SpaceQueries } from "../../lib/query";
 import { queryClient } from "../../lib/query";
 import type { createSpaceRpc } from "../../lib/rpc";
+import { cueRunSound } from "../../lib/run-sounds";
 import {
   isComputerStatusEvent,
   prependThreadMessagePage,
@@ -370,6 +371,7 @@ export function useThreadSync({
       applyEvent: (event) =>
         applyThreadEvent(event, commitSnapshot, commitComputer, snapshotRef, computerRef),
       onEvent: (event, initial) => {
+        cueRunSound(event, initial.cursor);
         const currentBot = botsRef.current.find((bot) => bot.id === active.id);
         notifyBrowserForEvent(
           event,
@@ -470,6 +472,7 @@ export function useThreadSync({
           computerRef,
         ),
       onEvent: (event, initial) => {
+        cueRunSound(event, initial.cursor);
         const eventBot = botsRef.current.find((bot) => bot.id === event.botId);
         notifyBrowserForEvent(
           event,

@@ -53,6 +53,7 @@ import { localTimezone, sameTimeZone, timezoneOptions } from "../lib/local-timez
 import { usePasskeysSupported } from "../lib/passkeys";
 import { remoteImagesPreference } from "../lib/remote-images-preference";
 import { responseStreamingPreference } from "../lib/response-streaming";
+import { runSoundsPreference } from "../lib/run-sounds";
 import { toolActivityPreference } from "../lib/tool-activity-preference";
 import type { AppearancePreference } from "../lib/ui-appearance";
 import { getUiAppearancePreference, setUiAppearance } from "../lib/ui-appearance";
@@ -139,6 +140,8 @@ export function GeneralSettingsPanels({
   const streamRepliesId = useId();
   const showToolActivity = toolActivityPreference.use();
   const showToolActivityId = useId();
+  const playRunSounds = runSoundsPreference.use();
+  const playRunSoundsId = useId();
   const enterToSend = composerEnterToSendPreference.use();
   const enterToSendId = useId();
   const loadRemoteImages = remoteImagesPreference.use();
@@ -447,6 +450,21 @@ export function GeneralSettingsPanels({
               data-testid="tool-activity-toggle"
               checked={showToolActivity}
               onCheckedChange={(checked) => toolActivityPreference.set(checked)}
+            />
+          }
+        />
+        <SettingsRow
+          label={
+            <Label htmlFor={playRunSoundsId} className="text-body font-normal text-foreground">
+              <Trans>Sounds</Trans>
+            </Label>
+          }
+          control={
+            <Switch
+              id={playRunSoundsId}
+              data-testid="run-sounds-toggle"
+              checked={playRunSounds}
+              onCheckedChange={(checked) => runSoundsPreference.set(checked)}
             />
           }
         />

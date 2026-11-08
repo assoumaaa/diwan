@@ -6,6 +6,7 @@ import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
 import { queryClient } from "../../lib/query";
+import { cueRunSound } from "../../lib/run-sounds";
 import { useThreadSync } from "./use-thread-sync";
 
 vi.mock("@rakazo/core", async (original) => ({
@@ -20,6 +21,7 @@ vi.mock("../../lib/query", () => ({
   },
 }));
 vi.mock("@rakazo/core/query", () => ({ fetchFresh: vi.fn(async () => []) }));
+vi.mock("../../lib/run-sounds", () => ({ cueRunSound: vi.fn() }));
 
 const ref = <T,>(current: T) => ({ current });
 const flush = () => act(async () => {});
@@ -140,6 +142,38 @@ it.each([false, true])(
     expect(refreshBots).toHaveBeenCalledTimes(1);
     expect(get).toHaveBeenCalledTimes(2);
     expect(subscription.signal.aborted).toBe(true);
+  },
+);
+
+it.each([
+  ["bot", false],
+  ["group", true],
+])(
+  "hands each event in a %s chat to the run sound cue with the chat's opening cursor",
+  async (_chat, inGroup) => {
+    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    const snapshot = { threadId: "thread-1", cursor: 7, messages: [], run: null };
+    const input = syncInput({
+      inGroup,
+      get: () => new Promise<ThreadSnapshot>(() => {}),
+      commitSnapshot: vi.fn(),
+    });
+    function Probe() {
+      useThreadSync(input);
+      return null;
+    }
+    const root = createRoot(document.createElement("div"));
+    await act(async () => root.render(createElement(Probe)));
+    const subscription = vi.mocked(runThreadSubscription).mock.calls[0]![0];
+    const started = { id: "e1", type: "run.started", seq: 8, payload: {} } as ProductEvent;
+    const finished = { id: "e2", type: "run.completed", seq: 9, payload: {} } as ProductEvent;
+    subscription.onEvent(started, snapshot as unknown as ThreadSnapshot);
+    subscription.onEvent(finished, snapshot as unknown as ThreadSnapshot);
+    expect(vi.mocked(cueRunSound).mock.calls).toEqual([
+      [started, 7],
+      [finished, 7],
+    ]);
+    act(() => root.unmount());
   },
 );
 
