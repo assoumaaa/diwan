@@ -29,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@rakazo/ui-web/components/ui/table";
+import { Play } from "lucide-react";
 import type { RefObject } from "react";
 import { useId, useRef, useState } from "react";
 import { AccountAccess, LinkSsoRow } from "../components/AccountAccess";
@@ -53,7 +54,13 @@ import { localTimezone, sameTimeZone, timezoneOptions } from "../lib/local-timez
 import { usePasskeysSupported } from "../lib/passkeys";
 import { remoteImagesPreference } from "../lib/remote-images-preference";
 import { responseStreamingPreference } from "../lib/response-streaming";
-import { runSoundsPreference } from "../lib/run-sounds";
+import type { RunSoundChoice } from "../lib/run-sounds";
+import {
+  playRunSound,
+  runFinishSoundPreference,
+  runSoundsPreference,
+  runStartSoundPreference,
+} from "../lib/run-sounds";
 import { toolActivityPreference } from "../lib/tool-activity-preference";
 import type { AppearancePreference } from "../lib/ui-appearance";
 import { getUiAppearancePreference, setUiAppearance } from "../lib/ui-appearance";
@@ -142,6 +149,8 @@ export function GeneralSettingsPanels({
   const showToolActivityId = useId();
   const playRunSounds = runSoundsPreference.useValue();
   const playRunSoundsId = useId();
+  const startSound = runStartSoundPreference.useValue();
+  const finishSound = runFinishSoundPreference.useValue();
   const enterToSend = composerEnterToSendPreference.useValue();
   const enterToSendId = useId();
   const loadRemoteImages = remoteImagesPreference.useValue();
@@ -468,6 +477,20 @@ export function GeneralSettingsPanels({
             />
           }
         />
+        {playRunSounds ? (
+          <>
+            <RunSoundRow
+              sound="start"
+              value={startSound}
+              onChange={(next) => runStartSoundPreference.set(next)}
+            />
+            <RunSoundRow
+              sound="finish"
+              value={finishSound}
+              onChange={(next) => runFinishSoundPreference.set(next)}
+            />
+          </>
+        ) : null}
         <SettingsRow
           label={
             <Label htmlFor={loadRemoteImagesId} className="text-body font-normal text-foreground">
@@ -866,6 +889,62 @@ function UiLocalePicker({
       }))}
       value={value}
       onValueChange={onChange}
+    />
+  );
+}
+
+function RunSoundRow({
+  sound,
+  value,
+  onChange,
+}: {
+  sound: "start" | "finish";
+  value: RunSoundChoice;
+  onChange: (next: RunSoundChoice) => void;
+}) {
+  const { t } = useLingui();
+  const label = sound === "start" ? t`Start sound` : t`Finish sound`;
+  const options: { value: RunSoundChoice; label: string }[] = [
+    { value: "terminal", label: t`Terminal` },
+    { value: "keyboard", label: t`Mechanical keyboard` },
+    { value: "hud", label: t`Sci-fi HUD` },
+    { value: "digitalBubble", label: t`Digital Bubble & Chime` },
+    { value: "bubble", label: t`Bubble & Chime` },
+    { value: "marimba", label: t`Marimba` },
+    { value: "whoosh", label: t`Whoosh & Ding` },
+    { value: "kalimba", label: t`Kalimba` },
+    { value: "none", label: t`None` },
+  ];
+  return (
+    <SettingsRow
+      label={label}
+      control={
+        <>
+          <OptionSelect
+            className="w-56 max-w-full"
+            data-testid={`run-${sound}-sound-select`}
+            aria-label={label}
+            options={options}
+            value={value}
+            onValueChange={onChange}
+          />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={sound === "start" ? t`Play start sound` : t`Play finish sound`}
+            data-testid={`run-${sound}-sound-play`}
+            disabled={value === "none"}
+            onClick={() => {
+              if (value === "none") {
+                return;
+              }
+              playRunSound({ sound, set: value });
+            }}
+          >
+            <Play />
+          </Button>
+        </>
+      }
     />
   );
 }

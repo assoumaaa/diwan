@@ -7,6 +7,7 @@ import { act, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, expect, it, vi } from "vitest";
+import type * as RunSounds from "../lib/run-sounds";
 
 vi.mock("@lingui/react/macro", () => ({
   useLingui: () => ({
@@ -68,8 +69,31 @@ vi.mock("@rakazo/ui-web", async (importOriginal) => ({
   ToggleGroupItem: ({ children }: { children?: ReactNode }) => (
     <button type="button">{children}</button>
   ),
-  OptionSelect: ({ "data-testid": testId }: { "data-testid"?: string }) => (
-    <div data-testid={testId} />
+  OptionSelect: ({
+    "data-testid": testId,
+    "aria-label": ariaLabel,
+    options,
+    value,
+    onValueChange,
+  }: {
+    "data-testid"?: string;
+    "aria-label"?: string;
+    options: readonly { value: string; label: string }[];
+    value: string | null;
+    onValueChange: (value: string) => void;
+  }) => (
+    <select
+      data-testid={testId}
+      aria-label={ariaLabel}
+      value={value ?? ""}
+      onChange={(event) => onValueChange(event.target.value)}
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
   ),
   cn: (...values: unknown[]) => values.filter(Boolean).join(" "),
 }));
@@ -115,6 +139,10 @@ vi.mock("../lib/ui-appearance", () => ({
   getUiAppearancePreference: () => "system",
   setUiAppearance: vi.fn(),
 }));
+vi.mock("../lib/run-sounds", async (importOriginal) => ({
+  ...(await importOriginal<typeof RunSounds>()),
+  playRunSound: vi.fn(),
+}));
 
 import { authClient } from "../lib/auth";
 import {
@@ -122,7 +150,14 @@ import {
   composerEnterToSendPreference,
 } from "../lib/composer-enter-to-send-pref";
 import { remoteImagesPreference } from "../lib/remote-images-preference";
-import { RUN_SOUNDS_STORAGE_KEY } from "../lib/run-sounds";
+import {
+  playRunSound,
+  RUN_FINISH_SOUND_STORAGE_KEY,
+  RUN_SOUNDS_STORAGE_KEY,
+  RUN_START_SOUND_STORAGE_KEY,
+  runFinishSoundPreference,
+  runStartSoundPreference,
+} from "../lib/run-sounds";
 import { TOOL_ACTIVITY_STORAGE_KEY } from "../lib/tool-activity-preference";
 import { GeneralSettingsPanels, UsageSettingsPanel } from "./AccountSettingsOverlay";
 
@@ -196,6 +231,51 @@ it("turns run sounds off and on from the settings toggle", async () => {
   } finally {
     await act(async () => root.unmount());
     container.remove();
+    vi.unstubAllGlobals();
+  }
+});
+
+it("picks start and finish sounds while sounds are on", async () => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const find = <T extends Element>(testId: string) =>
+    container.querySelector<T>(`[data-testid="${testId}"]`);
+  const choose = (sound: string, value: string) =>
+    act(async () => {
+      const select = find<HTMLSelectElement>(`run-${sound}-sound-select`)!;
+      select.value = value;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  try {
+    await act(async () => {
+      root.render(<GeneralSettingsPanels name="Jamie" />);
+    });
+    expect(find<HTMLSelectElement>("run-start-sound-select")?.value).toBe("terminal");
+    expect(find<HTMLSelectElement>("run-finish-sound-select")?.value).toBe("terminal");
+
+    await choose("start", "marimba");
+    await choose("finish", "none");
+    expect(localStorage.getItem(RUN_START_SOUND_STORAGE_KEY)).toBe("marimba");
+    expect(localStorage.getItem(RUN_FINISH_SOUND_STORAGE_KEY)).toBe("none");
+    expect(find<HTMLButtonElement>("run-finish-sound-play")?.disabled).toBe(true);
+
+    await act(async () => find<HTMLButtonElement>("run-start-sound-play")!.click());
+    expect(playRunSound).toHaveBeenCalledWith({ sound: "start", set: "marimba" });
+
+    await act(async () => find<HTMLButtonElement>("run-sounds-toggle")!.click());
+    expect(find("run-start-sound-select")).toBeNull();
+    expect(find("run-finish-sound-select")).toBeNull();
+
+    await act(async () => find<HTMLButtonElement>("run-sounds-toggle")!.click());
+    expect(find<HTMLSelectElement>("run-start-sound-select")?.value).toBe("marimba");
+    expect(find<HTMLSelectElement>("run-finish-sound-select")?.value).toBe("none");
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+    runStartSoundPreference.set("terminal");
+    runFinishSoundPreference.set("terminal");
     vi.unstubAllGlobals();
   }
 });
