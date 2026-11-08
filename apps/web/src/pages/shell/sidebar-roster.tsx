@@ -284,8 +284,8 @@ export function SidebarRoster({
                   item.kind === "bot" &&
                   (rosterHasUndismissedRunError(item.chat.runErrorId, dismissedRunErrorIds) ||
                     (active?.id === item.chat.id && Boolean(displayedRunError)));
-                const compactStatusLabel =
-                  (compact || mini) && item.kind === "bot"
+                const statusLabel =
+                  item.kind === "bot"
                     ? rowError
                       ? t`Error`
                       : compactRosterStatusLabel(item.chat.status)
@@ -307,7 +307,7 @@ export function SidebarRoster({
                 const rowDropKey = `row:${item.kind}:${item.chat.id}`;
                 const miniDescribedBy = [
                   item.chat.unread ? `roster-unread-${item.kind}-${item.chat.id}` : null,
-                  compactStatusLabel ? `roster-status-${item.kind}-${item.chat.id}` : null,
+                  statusLabel ? `roster-status-${item.kind}-${item.chat.id}` : null,
                 ]
                   .filter(Boolean)
                   .join(" ");
@@ -431,9 +431,9 @@ export function SidebarRoster({
                           className="absolute -end-0.5 bottom-0 size-2 rounded-full bg-destructive ring-2 ring-sidebar"
                         />
                       ) : null}
-                      {mini && compactStatusLabel ? (
+                      {mini && statusLabel ? (
                         <span className="sr-only" id={`roster-status-${item.kind}-${item.chat.id}`}>
-                          {compactStatusLabel}
+                          {statusLabel}
                         </span>
                       ) : null}
                       {mini && item.chat.unread ? (
@@ -498,36 +498,27 @@ export function SidebarRoster({
                             ) : null}
                           </div>
                         </div>
-                        {compact ? (
-                          compactStatusLabel ? (
-                            <div
-                              dir="auto"
-                              data-roster-status={
-                                rowError
-                                  ? "error"
-                                  : item.kind === "bot"
-                                    ? item.chat.status
-                                    : undefined
-                              }
-                              className={`mt-0.5 flex items-center gap-1 text-label ${
-                                rowError
-                                  ? "font-medium text-destructive"
-                                  : workStatusLabel
-                                    ? "font-semibold text-status-working"
-                                    : "font-medium text-foreground/75"
-                              }`}
-                            >
-                              {rowError ? <CircleAlert size={12} aria-hidden="true" /> : null}
-                              <span>{compactStatusLabel}</span>
-                            </div>
-                          ) : null
-                        ) : workStatusLabel ? (
-                          // Rows show only who and when; a second line appears while the bot works.
+                        {/* Who and when; a second line only while the bot works, needs you or failed. */}
+                        {statusLabel ? (
                           <div
                             dir="auto"
-                            className="mt-0.5 truncate text-label font-semibold text-status-working"
+                            data-roster-status={
+                              rowError
+                                ? "error"
+                                : item.kind === "bot"
+                                  ? item.chat.status
+                                  : undefined
+                            }
+                            className={`mt-0.5 flex items-center gap-1 text-label ${
+                              rowError
+                                ? "font-medium text-destructive"
+                                : workStatusLabel
+                                  ? "font-semibold text-status-working"
+                                  : "font-semibold text-foreground"
+                            }`}
                           >
-                            {workStatusLabel}
+                            {rowError ? <CircleAlert size={12} aria-hidden="true" /> : null}
+                            <span className="truncate">{statusLabel}</span>
                           </div>
                         ) : null}
                       </div>
@@ -560,11 +551,7 @@ export function SidebarRoster({
                       <IconTooltip
                         side="inline-end"
                         disabled={!mini}
-                        label={
-                          compactStatusLabel
-                            ? `${item.chat.name}: ${compactStatusLabel}`
-                            : item.chat.name
-                        }
+                        label={statusLabel ? `${item.chat.name}: ${statusLabel}` : item.chat.name}
                       >
                         {chatTrigger}
                       </IconTooltip>

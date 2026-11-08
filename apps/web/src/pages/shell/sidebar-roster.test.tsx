@@ -29,16 +29,18 @@ const chief = {
   updatedAt: "2026-11-08T10:00:00.000Z",
 } as unknown as Bot;
 
-const sidebarGroups = sidebarGroupsForSpaces<Space["bots"][number], Space["groups"][number]>(
-  [{ id: "space-1", name: "Home", bots: [chief], groups: [], botSections: [] }],
-  "",
-);
+function groupsFor(bot: Bot) {
+  return sidebarGroupsForSpaces<Space["bots"][number], Space["groups"][number]>(
+    [{ id: "space-1", name: "Home", bots: [bot], groups: [], botSections: [] }],
+    "",
+  );
+}
 
-function render(mini: boolean) {
+function render(mini: boolean, bot: Bot = chief) {
   return act(async () =>
     root.render(
       <SidebarRoster
-        sidebarGroups={sidebarGroups}
+        sidebarGroups={groupsFor(bot)}
         collapsedSidebarSections={new Set()}
         bootstrapMe={{ spaceId: "space-1" }}
         botSections={[]}
@@ -104,4 +106,14 @@ it("keeps each bot's avatar mounted when the sidebar collapses and expands", asy
 
   await render(false);
   expect(avatar()).toBe(expanded);
+});
+
+it("tells you when a bot needs an answer, not only when it works", async () => {
+  await render(false, { ...chief, status: "waiting_input" } as Bot);
+  const status = host.querySelector('[data-roster-bot-id="bot-1"] [data-roster-status]');
+  expect(status?.getAttribute("data-roster-status")).toBe("waiting_input");
+  expect(status?.textContent).toBe("Needs an answer");
+
+  await render(false);
+  expect(host.querySelector('[data-roster-bot-id="bot-1"] [data-roster-status]')).toBeNull();
 });
