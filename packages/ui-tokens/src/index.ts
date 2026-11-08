@@ -216,7 +216,8 @@ export const webDarkOverrides = {
   border: "#F5F5F51A",
   input: "#F5F5F538",
   ring: "#1884FC",
-  sidebar: "#0A0A0A",
+  // A shade above the background, so the floating sidebar panel reads as its own surface.
+  sidebar: "#141414",
   sidebarForeground: "#F5F5F5",
   sidebarBorder: "#F5F5F50F",
   sidebarAccent: "#F5F5F514",

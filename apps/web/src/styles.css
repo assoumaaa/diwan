@@ -122,11 +122,15 @@ body,
   color: var(--primary-foreground);
 }
 
-/* Graphite floats the bots sidebar as an inset panel on the window background. */
-:root[data-palette="graphite"] [data-slot="sidebar-container"] {
+/* The bots sidebar floats as an inset panel on the window background, in every theme. */
+[data-testid="bots-sidebar"][data-slot="sidebar-container"] {
   padding: 0.5rem;
   border-width: 0;
 }
-:root[data-palette="graphite"] [data-slot="sidebar-inner"] {
+/* Collapsed, it keeps its narrow width, so a thinner margin leaves the avatars room. */
+[data-slot="sidebar"][data-state="collapsed"] [data-testid="bots-sidebar"][data-slot="sidebar-container"] {
+  padding: 0.25rem;
+}
+[data-testid="bots-sidebar"] [data-slot="sidebar-inner"] {
   border-radius: 1rem;
 }
