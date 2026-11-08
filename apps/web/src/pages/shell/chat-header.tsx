@@ -59,7 +59,7 @@ export function ChatHeader({
         data-testid="bot-settings-trigger"
         aria-expanded={panelOpen}
         onClick={onTogglePanel}
-        className="app-no-drag h-auto min-w-0 gap-2 py-1 ps-1 pe-3.5"
+        className="app-no-drag h-auto min-w-0 gap-2 py-1 ps-2 pe-3.5"
       >
         {inGroup ? (
           <GroupAvatar members={activeSnapshot?.members ?? activeGroup?.members ?? []} size={26} />
@@ -70,6 +70,8 @@ export function ChatHeader({
             identity={active.id}
             size={26}
             status={active.status}
+            // The figure stands at the bottom of its box; lift it to sit in the pill's optical center.
+            className="-translate-y-px"
           />
         ) : null}
         <span className="min-w-0">

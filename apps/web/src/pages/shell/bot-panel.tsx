@@ -494,7 +494,7 @@ export function BotSettings({
   }
 
   return (
-    <div data-testid="bot-settings">
+    <div data-testid="bot-settings" className="@container">
       {/* One compact row, so the tabs and the computer screen start near the top. */}
       <div data-testid="bot-profile-header" className="flex items-start gap-3 pb-4">
         <div className="shrink-0">
@@ -531,7 +531,8 @@ export function BotSettings({
         </div>
       </div>
       <Tabs value={tab} onValueChange={(next) => onTabChange?.(next as BotPanelTab)}>
-        <TabsList className="w-full">
+        {/* A narrow panel takes smaller tab labels, so all four fit with room around them. */}
+        <TabsList className="w-full *:text-body-sm @xs:*:text-body">
           <TabsTrigger value="computer">
             <Trans>Computer</Trans>
           </TabsTrigger>

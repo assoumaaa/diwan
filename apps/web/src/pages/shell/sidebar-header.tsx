@@ -48,7 +48,8 @@ export function SidebarHeader({
     >
       {!mini || hasWindowChrome ? <WindowChrome /> : null}
       <div className={`relative flex items-center ${mini ? "flex-col gap-0.5" : "gap-1"}`}>
-        {onSearch ? (
+        {/* The mini rail keeps only Show bots: the other actions open the full sidebar anyway. */}
+        {onSearch && !mini ? (
           <IconTooltip label={t`Search`}>
             <Button
               variant="ghost"
@@ -71,7 +72,7 @@ export function SidebarHeader({
             aria-pressed={activityMode}
             data-activity-mode={activityMode ? "on" : "off"}
             onClick={toggleActivityMode}
-            className={`app-no-drag ${activityMode ? "bg-accent text-foreground" : "text-muted-foreground"}`}
+            className={`app-no-drag ${mini ? "hidden" : ""} ${activityMode ? "bg-accent text-foreground" : "text-muted-foreground"}`}
           >
             {/* A filled bell marks Activity on, so on and hovered never look alike. */}
             <Bell
@@ -105,7 +106,7 @@ export function SidebarHeader({
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className="app-no-drag text-muted-foreground"
+                  className={`app-no-drag text-muted-foreground ${mini ? "hidden" : ""}`}
                 />
               }
               aria-label={t`Create`}

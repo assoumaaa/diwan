@@ -40,10 +40,14 @@ export function ResizableSidePanel({
   const [preferredWidth, setPreferredWidth] = useState(readPreferredWidth);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const maxWidth = maximumWidth(reservedLeadingPx, viewportWidth);
-  const overlay = viewportWidth - reservedLeadingPx < MIN_CHAT_WIDTH + MIN_WIDTH;
+  const chatAreaWidth = viewportWidth - reservedLeadingPx;
+  const overlay = chatAreaWidth < MIN_CHAT_WIDTH + MIN_WIDTH;
   const [dragging, setDragging] = useState(false);
   const drag = useRef<{ x: number; width: number; direction: number } | null>(null);
-  const width = Math.max(MIN_WIDTH, Math.min(maxWidth, preferredWidth));
+  const floatingWidth = Math.max(MIN_WIDTH, Math.min(maxWidth, preferredWidth));
+  // A floating panel that would leave only a sliver of chat beside it covers the whole chat instead.
+  const width =
+    overlay && chatAreaWidth - floatingWidth < MIN_CHAT_WIDTH / 2 ? chatAreaWidth : floatingWidth;
 
   useEffect(() => {
     try {
@@ -79,7 +83,7 @@ export function ResizableSidePanel({
       data-panel={panel}
       data-overlay={overlay || undefined}
       style={{ "--panel-width": `${width}px` } as CSSProperties}
-      className={`absolute inset-y-0 end-0 z-20 flex min-h-0 shrink-0 flex-col overflow-hidden bg-background ${overlay ? "md:absolute" : "md:relative"} ${dragging ? "" : "transition-[width] duration-150 ease-out"} ${open ? "w-full max-w-[384px] border-s border-sidebar-border md:w-(--panel-width) md:max-w-none" : "pointer-events-none w-0"}`}
+      className={`absolute inset-y-0 end-0 z-20 flex min-h-0 shrink-0 flex-col overflow-hidden bg-background ${overlay ? "md:absolute" : "md:relative"} ${dragging ? "" : "transition-[width] duration-150 ease-out"} ${open ? `w-full ${viewportWidth - DEFAULT_WIDTH < MIN_CHAT_WIDTH / 2 ? "" : "max-w-[384px]"} border-s border-sidebar-border md:w-(--panel-width) md:max-w-none` : "pointer-events-none w-0"}`}
     >
       {open ? (
         <hr

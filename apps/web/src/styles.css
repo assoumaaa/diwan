@@ -122,15 +122,16 @@ body,
   color: var(--primary-foreground);
 }
 
-/* The bots sidebar floats as an inset panel on the window background, in every theme. */
+/* Expanded, the bots sidebar floats as an inset panel on the window background, in every theme.
+   Collapsed, it stays a flush rail: its narrow width has no room for a margin around the macOS
+   window buttons and the avatars. */
+[data-slot="sidebar"][data-state="expanded"]
 [data-testid="bots-sidebar"][data-slot="sidebar-container"] {
   padding: 0.5rem;
   border-width: 0;
 }
-/* Collapsed, it keeps its narrow width, so a thinner margin leaves the avatars room. */
-[data-slot="sidebar"][data-state="collapsed"] [data-testid="bots-sidebar"][data-slot="sidebar-container"] {
-  padding: 0.25rem;
-}
-[data-testid="bots-sidebar"] [data-slot="sidebar-inner"] {
+[data-slot="sidebar"][data-state="expanded"]
+  [data-testid="bots-sidebar"]
+  [data-slot="sidebar-inner"] {
   border-radius: 1rem;
 }
