@@ -65,7 +65,7 @@ const messages: ThreadMessage[] = [
 ];
 
 function ThreadFixture() {
-  const showToolActivity = toolActivityPreference.use();
+  const showToolActivity = toolActivityPreference.useValue();
   return (
     <FixtureTranscript messages={messages} running={live} showToolActivity={showToolActivity} />
   );

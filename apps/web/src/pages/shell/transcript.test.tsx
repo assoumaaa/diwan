@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import type { ThreadMessage } from "@rakazo/contracts";
-import { foldPeerReplies } from "@rakazo/core";
 import type { ComponentProps, ReactNode, RefObject } from "react";
 import { act } from "react";
 import type { Root } from "react-dom/client";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { rpc } from "../../lib/rpc";
+import type { TranscriptView } from "../../lib/transcript-projection";
+import { projectTranscript } from "../../lib/transcript-projection";
 import { Transcript } from "./transcript";
 
 const stableT = (strings: TemplateStringsArray, ...values: unknown[]) =>
@@ -87,6 +88,20 @@ function history(): ThreadMessage[] {
   ];
 }
 
+function transcriptView(
+  messages: readonly ThreadMessage[],
+  previous: TranscriptView | null = null,
+): TranscriptView {
+  return projectTranscript(previous, {
+    messages,
+    runs: [{ id: "run", botId: "bot", status: "running" }],
+    showToolActivity: false,
+    unreadAfterSeq: null,
+    olderCursor: null,
+    expandedMarkerIds: new Set(),
+  });
+}
+
 function baseProps(messages: readonly ThreadMessage[]): ComponentProps<typeof Transcript> {
   return {
     scrollRef,
@@ -95,15 +110,9 @@ function baseProps(messages: readonly ThreadMessage[]): ComponentProps<typeof Tr
     followRequest: 0,
     callHoldsSpeaker: false,
     artifactTarget: { botId: "bot" },
-    transcript: foldPeerReplies(messages, { includePeerReceipts: true }),
-    showToolActivity: false,
-    olderCursor: null,
-    unreadAfterSeq: null,
+    view: transcriptView(messages),
+    onExpandPeerMarker: vi.fn(),
     loadingOlder: false,
-    answerableAskIds: new Set<string>(),
-    dismissableAskIds: new Set<string>(),
-    running: true,
-    workingBots: [{ botId: "bot", color: "orange", status: "running" }],
     onLoadOlder: vi.fn(),
     onOpenBot: vi.fn(),
     onAnswer: vi.fn(),
@@ -169,9 +178,7 @@ it("drops the quote pill when a streaming edit replaces the selected nodes", asy
   );
   render({
     ...props,
-    transcript: foldPeerReplies([...rewritten, liveMessage("Drafting")], {
-      includePeerReceipts: true,
-    }),
+    view: transcriptView([...rewritten, liveMessage("Drafting")], props.view),
   });
 
   expect(window.getSelection()!.getRangeAt(0).collapsed).toBe(true);
@@ -215,9 +222,7 @@ it("drops the quote pill when an edit removes only one end of the selection", as
   start.remove();
   render({
     ...props,
-    transcript: foldPeerReplies([...messages, liveMessage("Drafting more")], {
-      includePeerReceipts: true,
-    }),
+    view: transcriptView([...messages, liveMessage("Drafting more")], props.view),
   });
 
   expect(window.getSelection()!.getRangeAt(0).collapsed).toBe(false);

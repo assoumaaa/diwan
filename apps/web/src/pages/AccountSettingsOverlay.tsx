@@ -132,19 +132,19 @@ export function GeneralSettingsPanels({
   const [appearance, setAppearance] = useState<AppearancePreference>(() =>
     getUiAppearancePreference(),
   );
-  const sidebarDensity = botsSidebarDensityPreference.use();
+  const sidebarDensity = botsSidebarDensityPreference.useValue();
   const sidebarDensityLabelId = useId();
   const botStyleLabelId = useId();
   const [botStyleError, setBotStyleError] = useState<string | null>(null);
-  const streamReplies = responseStreamingPreference.use();
+  const streamReplies = responseStreamingPreference.useValue();
   const streamRepliesId = useId();
-  const showToolActivity = toolActivityPreference.use();
+  const showToolActivity = toolActivityPreference.useValue();
   const showToolActivityId = useId();
-  const playRunSounds = runSoundsPreference.use();
+  const playRunSounds = runSoundsPreference.useValue();
   const playRunSoundsId = useId();
-  const enterToSend = composerEnterToSendPreference.use();
+  const enterToSend = composerEnterToSendPreference.useValue();
   const enterToSendId = useId();
-  const loadRemoteImages = remoteImagesPreference.use();
+  const loadRemoteImages = remoteImagesPreference.useValue();
   const loadRemoteImagesId = useId();
   const timezoneId = useId();
   const showPassword = Boolean(

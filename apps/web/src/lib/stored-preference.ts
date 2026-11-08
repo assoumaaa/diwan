@@ -33,7 +33,8 @@ export type StoredPreference<T> = {
   get(): T;
   set(value: T): T;
   subscribe(listener: () => void): () => void;
-  use(): T;
+  // A hook name, so the React Compiler keeps calling it on every render instead of caching it.
+  useValue(): T;
 };
 
 /**
@@ -99,6 +100,6 @@ export function createStoredPreference<T>({
     get,
     set,
     subscribe,
-    use: () => useSyncExternalStore(subscribe, get, get),
+    useValue: () => useSyncExternalStore(subscribe, get, get),
   };
 }

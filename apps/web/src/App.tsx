@@ -92,7 +92,7 @@ const linkFavicons: LinkFavicons = {
 };
 
 export function App() {
-  const loadRemoteImages = remoteImagesPreference.use();
+  const loadRemoteImages = remoteImagesPreference.useValue();
   return (
     <RemoteImagesContext.Provider value={loadRemoteImages}>
       <LinkFaviconsContext.Provider value={linkFavicons}>

@@ -21,7 +21,7 @@ export function useSidebarSearch({
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchAttempt, setSearchAttempt] = useState(0);
-  const activityMode = activityModePreference.use();
+  const activityMode = activityModePreference.useValue();
   const [activityFilters, setActivityFilters] = useState<ActivityListFilters>(emptyActivityFilters);
   const [activityFiltersExpanded, setActivityFiltersExpanded] = useState(false);
   const activityFiltersId = useId();

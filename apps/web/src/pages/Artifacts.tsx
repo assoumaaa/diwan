@@ -94,7 +94,7 @@ export function ArtifactsPage() {
   const navigate = useNavigate();
   const { t } = useLingui();
   const [activeBotId, setActiveBotId] = useState<string | null>(null);
-  const viewMode = viewModePreference.use();
+  const viewMode = viewModePreference.useValue();
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [madeByBots, setMadeByBots] = useState(false);

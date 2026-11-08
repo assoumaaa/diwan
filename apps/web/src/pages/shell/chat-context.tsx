@@ -11,6 +11,7 @@ import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { ArtifactTarget } from "../../lib/artifact-open";
 import { useArtifactImage } from "../../lib/use-artifact-image";
+import { useRedrawAtMidnight } from "./use-redraw-at-midnight";
 
 function ReplyThumbnail({
   attachment,
@@ -65,12 +66,13 @@ function ReplyThumbnail({
 
 export function TimeSeparator({ createdAt, locale }: { createdAt: string; locale: string }) {
   const { t } = useLingui();
+  const now = useRedrawAtMidnight();
   return (
     <h3
       data-testid="time-separator"
       className="my-3 select-none text-center text-label font-normal text-muted-foreground"
     >
-      {formatTimeSeparator(createdAt, locale, { today: t`Today`, yesterday: t`Yesterday` })}
+      {formatTimeSeparator(createdAt, locale, { today: t`Today`, yesterday: t`Yesterday` }, now)}
     </h3>
   );
 }

@@ -8,24 +8,17 @@ import type {
 } from "@rakazo/contracts";
 import { DEFAULT_NEW_BOT_AVATAR_SET } from "@rakazo/contracts";
 import {
-  activeThreadRuns,
-  answerableAskMessageIds,
   channelMessageSender,
   chatSnoozed,
   chatUserBubbleColors,
   chatWoke,
-  dismissableAskMessageIds,
-  foldPeerReplies,
   groupBotsForSidebar,
   isActive,
-  isRunWorking,
   memberName,
   newClientId,
   otherAuthor,
-  workingRoutineName,
 } from "@rakazo/core";
 import { writeSaved } from "@rakazo/core/query";
-import type { GroupAvatarMember } from "@rakazo/ui-web";
 import { Button } from "@rakazo/ui-web";
 import { useIsMobile } from "@rakazo/ui-web/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
@@ -34,6 +27,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useEffectEvent,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -64,6 +58,7 @@ import { rightPanelStorageKey } from "../lib/right-panel-state";
 import { createSpaceRpc, selectedSpaceId } from "../lib/rpc";
 import { markShellReady, useSpaceEpoch } from "../lib/space-switch";
 import { toolActivityPreference } from "../lib/tool-activity-preference";
+import { useTranscriptView } from "../lib/transcript-projection";
 import { useDesktopBadge } from "../lib/use-desktop-badge";
 import { errorText } from "../lib/user-error";
 import { HostComputerPrompt } from "./HostComputerPrompt";
@@ -72,7 +67,6 @@ import { ArchivedChats } from "./shell/archived-chats";
 import { ChatContextMenu } from "./shell/chat-context-menu";
 import { ChatFindBar } from "./shell/chat-find-bar";
 import { ChatHeader } from "./shell/chat-header";
-import { FALLBACK_BOT_COLOR } from "./shell/chat-shared";
 import { Composer } from "./shell/composer";
 import { ComputerOverlay } from "./shell/computer-overlay";
 import { ComputerPanel } from "./shell/computer-panel";
@@ -193,14 +187,17 @@ function SpaceShell() {
   const search = useSidebarSearch({ rpc, navigate });
   const thread = useThreadState();
   const { snapshot } = thread;
-  const showToolActivity = toolActivityPreference.use();
-  const botsSidebarDensity = botsSidebarDensityPreference.use();
-  const enterToSend = composerEnterToSendPreference.use();
+  const showToolActivity = toolActivityPreference.useValue();
+  const botsSidebarDensity = botsSidebarDensityPreference.useValue();
+  const enterToSend = composerEnterToSendPreference.useValue();
   const rightPanel = useRightPanel({ searchParams, setSearchParams });
   const { panel, setPanel, modelFocusRequest, setModelFocusRequest } = rightPanel;
   const lastBotTab = useRef<Panel>("routines");
-  if (panel === "routines" || panel === "computer" || panel === "pages" || panel === "settings")
-    lastBotTab.current = panel;
+  useEffect(() => {
+    if (panel === "routines" || panel === "computer" || panel === "pages" || panel === "settings") {
+      lastBotTab.current = panel;
+    }
+  }, [panel]);
   const [peerConversation, setPeerConversation] = usePreloadRecoveryState<{
     peerBotId: string;
     peerBotName: string;
@@ -231,6 +228,11 @@ function SpaceShell() {
         ? null
         : undefined;
   const call = useCallSession();
+  function openSettings(section: SettingsSection = "general", spaceId: string | null = null) {
+    setOverlay({ kind: "settings", section, spaceId });
+  }
+  const voiceStatus: VoiceStatus | null =
+    useQuery(queries.voice.status.queryOptions()).data ?? null;
   /** Calls a bot, or opens voice settings first when no voice is connected. */
   const callBot = (bot: Bot) => {
     if (!bootstrapMe?.phoneCallsEnabled) return;
@@ -246,8 +248,6 @@ function SpaceShell() {
       transcribe: voiceStatus ? Boolean(voiceStatus.transcribe) : undefined,
     });
   };
-  const voiceStatus: VoiceStatus | null =
-    useQuery(queries.voice.status.queryOptions()).data ?? null;
   const { mobileSidebarOpen, setMobileSidebarOpen, swipeHandlers } = useMobileSidebar();
   const isMobileSidebar = useIsMobile();
   const pages = usePagesForChat();
@@ -265,9 +265,8 @@ function SpaceShell() {
     if (settingsSpaceGone) setOverlay(null);
   }, [settingsSpaceGone]);
   // The app menu owns Cmd+, because macOS takes it before the page sees a keydown.
-  const openSettingsRef = useRef(openSettings);
-  openSettingsRef.current = openSettings;
-  useEffect(() => desktopBridge()?.settings?.onOpen(() => openSettingsRef.current("general")), []);
+  const openGeneralSettings = useEffectEvent(() => openSettings("general"));
+  useEffect(() => desktopBridge()?.settings?.onOpen(() => openGeneralSettings()), []);
 
   const inGroup = Boolean(groupId);
   const chatPanelOpen = inGroup
@@ -279,13 +278,17 @@ function SpaceShell() {
       panel === "routine";
   // Until the route names the chat reopened from cache, that chat stands in for it.
   const routeChat = botId || groupId ? undefined : startChat;
-  const active =
-    inGroup || routeChat?.groupId
-      ? undefined
-      : (bots.find((b) => b.id === (botId ?? routeChat?.botId)) ??
-        // With no chat named, open one that's in the list, not a snoozed one.
-        bots.find((b) => !chatSnoozed(b, snoozeNow)) ??
-        bots[0]);
+  // Memoized so the compiler sees it as settled; a computed find would read as still changing.
+  const active = useMemo(
+    () =>
+      inGroup || routeChat?.groupId
+        ? undefined
+        : (bots.find((b) => b.id === (botId ?? routeChat?.botId)) ??
+          // With no chat named, open one that's in the list, not a snoozed one.
+          bots.find((b) => !chatSnoozed(b, snoozeNow)) ??
+          bots[0]),
+    [inGroup, routeChat, bots, botId, snoozeNow],
+  );
   const selectBot = useCallback(
     (id: string) => {
       setMobileSidebarOpen(false);
@@ -293,15 +296,24 @@ function SpaceShell() {
     },
     [navigate, setMobileSidebarOpen],
   );
+  const activeColor = active?.color;
+  const activeId = active?.id;
   const userBubble = useMemo(
-    () => (active ? chatUserBubbleColors(active.color, active.id) : undefined),
-    [active?.color, active?.id],
+    () =>
+      activeColor !== undefined && activeId !== undefined
+        ? chatUserBubbleColors(activeColor, activeId)
+        : undefined,
+    [activeColor, activeId],
   );
   const activeGroup = groups.find((group) => group.id === groupId);
-  const activeBotId = useRef<string | undefined>(inGroup ? undefined : active?.id);
-  activeBotId.current = inGroup ? undefined : active?.id;
-  const activeGroupId = useRef<string | undefined>(groupId);
-  activeGroupId.current = groupId;
+  const openBotId = inGroup ? undefined : active?.id;
+  // The open chat for async work to check against; set before any later hook's effects run.
+  const activeBotId = useRef(openBotId);
+  const activeGroupId = useRef(groupId);
+  useLayoutEffect(() => {
+    activeBotId.current = openBotId;
+    activeGroupId.current = groupId;
+  }, [openBotId, groupId]);
   const computerState = useComputerState({ rpc, panel, activeId: active?.id, activeBotId });
   const { computer, computerOpen, setComputerOpen, booting, commitComputer } = computerState;
   const [cleaningUpDisk, setCleaningUpDisk] = useState(false);
@@ -592,38 +604,17 @@ function SpaceShell() {
     openSpaceChatRef.current = openSpaceChat;
   }, [openSpaceChat]);
 
-  const activeSnapshot = inGroup
+  const snapshotIsOpenChat = inGroup
     ? snapshot?.groupId === groupId
-      ? snapshot
-      : null
-    : snapshot?.botId === active?.id
-      ? snapshot
-      : null;
-  // Stable across unrelated renders (a sidebar toggle), so the memoized transcript skips them.
-  const currentRuns = useMemo(() => activeThreadRuns(activeSnapshot), [activeSnapshot]);
-  const answerableAskIds = useMemo(() => answerableAskMessageIds(activeSnapshot), [activeSnapshot]);
-  const dismissableAskIds = useMemo(
-    () => dismissableAskMessageIds(activeSnapshot, userId),
-    [activeSnapshot, userId],
-  );
-  const workingRuns = useMemo(
-    () => currentRuns.filter((run) => isRunWorking(run.status)),
-    [currentRuns],
-  );
-  const transcriptRunning = workingRuns.length > 0;
-  const composerRunning = currentRuns.some((run) => isActive(run.status));
-  const transcript = useMemo(
-    () => foldPeerReplies(activeSnapshot?.messages ?? [], { includePeerReceipts: true }),
-    [activeSnapshot?.messages],
-  );
-  // The latest callBot behind a stable callback, so the memoized transcript keeps its props.
-  const callBotRef = useRef(callBot);
-  callBotRef.current = callBot;
-  const canCallBack = Boolean(bootstrapMe?.phoneCallsEnabled && !inGroup && active);
-  const callBack = useMemo(
-    () => (canCallBack && active ? () => callBotRef.current(active) : undefined),
-    [canCallBack, active],
-  );
+    : snapshot?.botId === active?.id;
+  const activeSnapshot = snapshotIsOpenChat ? snapshot : null;
+  const { view: transcriptView, expandPeerMarker } = useTranscriptView({
+    snapshot: activeSnapshot,
+    meId: userId,
+    showToolActivity,
+    unreadAfterSeq: read.unreadAfterSeq,
+  });
+  const composerRunning = transcriptView.runs.some((run) => isActive(run.status));
   const transcriptArtifactTarget = useMemo<ArtifactTarget>(
     () => (inGroup ? { groupId: groupId ?? "" } : { botId: active?.id ?? "" }),
     [active?.id, groupId, inGroup],
@@ -636,20 +627,6 @@ function SpaceShell() {
       return transcriptMembers?.find((member) => member.botId === botId);
     },
     [bots, transcriptMembers],
-  );
-  const workingBots = useMemo<GroupAvatarMember[]>(
-    () =>
-      workingRuns.map((run) => {
-        const bot = resolveTranscriptBot(run.botId);
-        return {
-          botId: run.botId,
-          color: bot?.color ?? FALLBACK_BOT_COLOR,
-          avatarSet: bot?.avatarSet,
-          name: bot?.name,
-          status: run.status,
-        };
-      }),
-    [workingRuns, resolveTranscriptBot],
   );
   const resolveTranscriptMemberName = useCallback(
     (botId: string | undefined) => memberName(transcriptMembers, botId),
@@ -692,7 +669,7 @@ function SpaceShell() {
     queries,
     thread,
     commitComputer,
-    transcript,
+    transcript: transcriptView.folded,
     active,
     inGroup,
     groupId,
@@ -797,26 +774,31 @@ function SpaceShell() {
   useLayoutEffect(() => {
     setOverlayRef.current = setOverlay;
   }, [setOverlay]);
+  const { setReplyTarget, setReplyQuote } = composer;
   const replyToMessage = useCallback(
     (message: ThreadMessage) => {
-      composer.setReplyTarget(message);
-      composer.setReplyQuote(null);
+      setReplyTarget(message);
+      setReplyQuote(null);
     },
-    [composer.setReplyQuote, composer.setReplyTarget],
+    [setReplyQuote, setReplyTarget],
   );
   const quoteMessage = useCallback(
     (message: ThreadMessage, quote: string) => {
-      composer.setReplyTarget(message);
-      composer.setReplyQuote(quote);
+      setReplyTarget(message);
+      setReplyQuote(quote);
     },
-    [composer.setReplyQuote, composer.setReplyTarget],
+    [setReplyQuote, setReplyTarget],
   );
+  const { markBotUnread, markGroupUnreadFrom } = read;
   const markMessageUnread = useCallback(
     (message: ThreadMessage) => {
-      if (groupId) read.markGroupUnreadFrom(groupId, message.id);
-      else if (active?.id) void read.markBotUnread(active.id, message.id).catch(() => undefined);
+      if (groupId) {
+        markGroupUnreadFrom(groupId, message.id);
+      } else if (activeId) {
+        void markBotUnread(activeId, message.id).catch(() => undefined);
+      }
     },
-    [active?.id, groupId, read.markBotUnread, read.markGroupUnreadFrom],
+    [activeId, groupId, markBotUnread, markGroupUnreadFrom],
   );
   const openPeerMessages = useCallback(
     (peer: { peerBotId: string; peerBotName: string }) => {
@@ -853,10 +835,6 @@ function SpaceShell() {
   function setBotsSidebarCollapsedPref(collapsed: boolean) {
     setBotsSidebarCollapsed(collapsed);
     writeBotsSidebarCollapsed(userId, collapsed);
-  }
-
-  function openSettings(section: SettingsSection = "general", spaceId: string | null = null) {
-    setOverlay({ kind: "settings", section, spaceId });
   }
 
   // Space-scoped sections bind their own rpc client to this space, so another
@@ -1104,18 +1082,15 @@ function SpaceShell() {
               followRequest={composer.sentCount}
               artifactTarget={transcriptArtifactTarget}
               markedUnreadMessageId={read.markedUnreadMessageId}
-              transcript={transcript}
-              showToolActivity={showToolActivity}
-              olderCursor={activeSnapshot?.olderCursor ?? null}
-              unreadAfterSeq={read.unreadAfterSeq}
+              view={transcriptView}
+              onExpandPeerMarker={expandPeerMarker}
               loadingOlder={loadingOlder}
-              answerableAskIds={answerableAskIds}
-              dismissableAskIds={dismissableAskIds}
-              running={transcriptRunning}
-              workingBots={workingBots}
-              workingRoutine={workingRoutineName(workingRuns)}
               userBubble={userBubble}
-              onCallBack={callBack}
+              onCallBack={
+                bootstrapMe?.phoneCallsEnabled && !inGroup && active
+                  ? () => callBot(active)
+                  : undefined
+              }
               onLoadOlder={loadOlder}
               onOpenBot={openBot}
               onAnswer={composer.answerMessage}
@@ -1341,7 +1316,7 @@ function SpaceShell() {
         <AppOverlays
           overlay={overlay}
           setOverlay={setOverlay}
-          activeBotId={activeBotId.current}
+          activeBotId={openBotId}
           stdioEnabled={bootstrapMe?.mcpStdioEnabled === true}
           onConnectedAppsChange={setFooterLogos}
           onOpenBot={openCreatedBot}

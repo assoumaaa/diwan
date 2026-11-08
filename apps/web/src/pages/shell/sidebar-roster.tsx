@@ -99,7 +99,7 @@ export function SidebarRoster({
   botMenuContent: ReactNode;
   mini?: boolean;
 }) {
-  useRedrawAtMidnight();
+  const now = useRedrawAtMidnight();
   const { t } = useLingui();
   return (
     <>
@@ -483,7 +483,7 @@ export function SidebarRoster({
                                 data-roster-time
                                 className="text-label text-faint-foreground tabular-nums"
                               >
-                                {formatRosterTime(item.chat.updatedAt)}
+                                {formatRosterTime(item.chat.updatedAt, now)}
                               </span>
                             ) : null}
                             {item.chat.unread ? (
@@ -593,13 +593,12 @@ function headerName(group: { title?: string | null; subtitle?: string }): string
   return group.subtitle ? `${group.title}, ${group.subtitle}` : (group.title ?? "");
 }
 
-function formatRosterTime(isoDate?: string | null): string {
+function formatRosterTime(isoDate: string | null | undefined, now: Date): string {
   if (!isoDate) return "";
   try {
     const d = new Date(isoDate);
     if (Number.isNaN(d.getTime())) return "";
     const locale = i18n.locale || "en";
-    const now = new Date();
     const isToday =
       d.getDate() === now.getDate() &&
       d.getMonth() === now.getMonth() &&

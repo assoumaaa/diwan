@@ -14,6 +14,19 @@ export function needsTimeSeparator(current: string | Date, previous?: string | D
   );
 }
 
+// Building a formatter costs far more than using one, and every separator redraw needs one.
+const dateTimeFormats = new Map<string, Intl.DateTimeFormat>();
+
+function dateTimeFormat(locale: string, options: Intl.DateTimeFormatOptions) {
+  const key = `${locale} ${JSON.stringify(options)}`;
+  let formatter = dateTimeFormats.get(key);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, options);
+    dateTimeFormats.set(key, formatter);
+  }
+  return formatter;
+}
+
 export function formatTimeSeparator(
   createdAt: string | Date,
   locale: string,
@@ -26,7 +39,7 @@ export function formatTimeSeparator(
   const timeFallback = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
   const format = (options: Intl.DateTimeFormatOptions, fallback: string): string => {
     try {
-      return new Intl.DateTimeFormat(locale, options).format(date);
+      return dateTimeFormat(locale, options).format(date);
     } catch {
       // Hermes builds and invalid/unsupported locales must never prevent opening a thread.
       return fallback;

@@ -24,7 +24,7 @@ import {
 } from "@rakazo/core/node/screen-proxy-response";
 import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
-import react from "@vitejs/plugin-react";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import type { PreviewServer, ViteDevServer } from "vite";
 import { defineConfig, loadEnv } from "vite";
 import { wuyingScreenAssets } from "../../packages/adapters/src/wuying-screen-assets.ts";
@@ -549,7 +549,9 @@ export default defineConfig(({ command, mode }) => {
         },
       },
       react(),
-      babel({ plugins: ["@lingui/babel-plugin-lingui-macro"] }),
+      // Babel runs plugins before presets, so Lingui's macros expand before the React Compiler reads
+      // the code. The compiler memoizes every component and hook, so props keep their identity.
+      babel({ plugins: ["@lingui/babel-plugin-lingui-macro"], presets: [reactCompilerPreset()] }),
       lingui(),
       tailwindcss(),
       rakazoPwa(buildId),

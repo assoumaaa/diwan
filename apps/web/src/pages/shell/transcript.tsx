@@ -6,48 +6,24 @@ import type {
   MessageReaction,
   ThreadMessage,
 } from "@rakazo/contracts";
-import type { ChildBotBlock, FoldedTranscript } from "@rakazo/core";
-import {
-  expandPeerReplies,
-  groupVoiceChats,
-  isPeerReceiptBlocks,
-  liveActivityLine,
-  liveMessageComposing,
-  peerExchangeLines,
-  projectBotMentions,
-  projectMessageReactions,
-  timeSeparatorIds,
-  unreadDividerMessageId,
-  voiceChatHoldsMessage,
-} from "@rakazo/core";
-import type { GroupAvatarMember } from "@rakazo/ui-web";
 import { Button, cn, Spinner } from "@rakazo/ui-web";
 import { ArrowDown } from "lucide-react";
 import type { CSSProperties, RefObject } from "react";
-import {
-  Fragment,
-  memo,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ActiveBotGlyph } from "../../components/ai/CollaborationMarker";
 import { VoiceChatCard } from "../../components/call/VoiceChatCard";
 import type { ArtifactTarget } from "../../lib/artifact-open";
-import { projectPageCards } from "../../lib/page-cards";
 import {
   isDetachedRange,
   lastSelectedText,
   quoteDraftForSelection,
 } from "../../lib/quote-selection";
 import type { createSpaceRpc } from "../../lib/rpc";
-import { messageHasVisibleBlocks } from "../../lib/tool-activity-view";
 import { TRANSCRIPT_CONTENT_PADDING } from "../../lib/transcript-layout";
+import type { TranscriptView } from "../../lib/transcript-projection";
 import { transcriptIsNearEnd, transcriptMovedDown } from "../../lib/transcript-scroll";
 import { TimeSeparator, UnreadDivider } from "./chat-context";
+import { FALLBACK_BOT_COLOR } from "./chat-shared";
 import type { ImportSetupTarget } from "./import-setup-card";
 import { MessageView } from "./message-view";
 import { QuoteSelectionButton } from "./quote-selection-button";
@@ -65,17 +41,10 @@ export const Transcript = memo(function Transcript({
   onScrollRequestHandled,
   followRequest,
   artifactTarget,
-  transcript,
+  view,
+  onExpandPeerMarker,
   meId,
-  showToolActivity,
-  olderCursor,
-  unreadAfterSeq,
   loadingOlder,
-  answerableAskIds,
-  dismissableAskIds,
-  running,
-  workingBots,
-  workingRoutine,
   userBubble,
   onCallBack,
   onLoadOlder,
@@ -107,18 +76,12 @@ export const Transcript = memo(function Transcript({
   /** Changes when you send: the view moves to the end and follows the reply. */
   followRequest: number;
   artifactTarget: ArtifactTarget;
-  transcript: FoldedTranscript<ThreadMessage>;
+  /** What the chat shows, from `useTranscriptView`. */
+  view: TranscriptView;
+  /** Shows the replies folded under a peer marker, for a jump to one of them. */
+  onExpandPeerMarker: (markerId: string) => void;
   meId?: string;
-  showToolActivity: boolean;
-  olderCursor: number | null;
-  /** The seq read up to when this chat opened; null when nothing was unread. */
-  unreadAfterSeq: number | null;
   loadingOlder: boolean;
-  answerableAskIds: Set<string>;
-  dismissableAskIds: Set<string>;
-  running: boolean;
-  workingBots: GroupAvatarMember[];
-  workingRoutine?: string;
   /** Your bubbles take the bot's color in its own chat. */
   userBubble?: { background: string; foreground: string };
   /** Calls the bot back from a missed call in the transcript. */
@@ -162,84 +125,25 @@ export const Transcript = memo(function Transcript({
   const lastScrollTop = useRef<number | null>(null);
   const autoScrollTimer = useRef<number | undefined>(undefined);
   const jumpButtonRef = useRef<HTMLButtonElement>(null);
-  const [expandedPeerMarkers, setExpandedPeerMarkers] = useState<ReadonlySet<string>>(
-    () => new Set(),
-  );
+  const { messages, messageById, running, workingRoutine } = view;
+  const { showToolActivity, olderCursor } = view.input;
   // A jump to a folded reply expands its marker; the scroll effect below then finds the row.
   useLayoutEffect(() => {
-    const markerId = scrollRequest && transcript.markerOf.get(scrollRequest.messageId);
-    if (!markerId) return;
-    setExpandedPeerMarkers((expanded) =>
-      expanded.has(markerId) ? expanded : new Set(expanded).add(markerId),
-    );
-  }, [scrollRequest, transcript]);
-  const messages = useMemo(
-    () => expandPeerReplies(transcript, expandedPeerMarkers),
-    [transcript, expandedPeerMarkers],
-  );
-  const messageById = useMemo(
-    () => new Map(messages.map((message) => [message.id, message])),
-    [messages],
-  );
-  const committedMentions = useRef(new Map<string, ChildBotBlock[]>());
-  const mentionView = useMemo(() => {
-    const view = projectBotMentions(messages);
-    for (const [id, mentions] of view.mentions) {
-      const previous = committedMentions.current.get(id);
-      if (
-        previous?.length === mentions.length &&
-        mentions.every((block, index) => block === previous[index])
-      ) {
-        view.mentions.set(id, previous);
-      }
+    const markerId = scrollRequest && view.folded.markerOf.get(scrollRequest.messageId);
+    if (markerId) {
+      onExpandPeerMarker(markerId);
     }
-    return view;
-  }, [messages]);
-  const committedPages = useRef<ReturnType<typeof projectPageCards> | null>(null);
-  const pageView = useMemo(() => {
-    const view = projectPageCards(mentionView.visibleMessages);
-    const committed = committedPages.current;
-    if (!committed) return view;
-    for (const [id, pages] of view.pages) {
-      const previous = committed.pages.get(id);
-      if (
-        previous?.length === pages.length &&
-        pages.every((block, index) => block === previous[index])
-      ) {
-        view.pages.set(id, previous);
-      }
-    }
-    if (committed.cardsKey === view.cardsKey) view.isSuperseded = committed.isSuperseded;
-    return view;
-  }, [mentionView]);
-  // A progress tick rebuilds these views. The jump still reads the latest folds, without a new
+  }, [scrollRequest, view.folded, onExpandPeerMarker]);
+  // A progress tick projects a new view. The jump still reads the latest folds, without a new
   // callback that would rerender every memoized message.
-  const foldViews = useRef({ mentionView, pageView });
+  const foldedInto = useRef(view.foldedInto);
   useLayoutEffect(() => {
-    foldViews.current = { mentionView, pageView };
-    committedMentions.current = mentionView.mentions;
-    committedPages.current = pageView;
-  }, [mentionView, pageView]);
+    foldedInto.current = view.foldedInto;
+  }, [view.foldedInto]);
   const jumpToMessage = useCallback(
-    (messageId: string) => {
-      const views = foldViews.current;
-      const target = views.mentionView.foldedInto.get(messageId) ?? messageId;
-      onJumpToMessage(views.pageView.foldedInto.get(target) ?? target);
-    },
+    (messageId: string) => onJumpToMessage(foldedInto.current.get(messageId) ?? messageId),
     [onJumpToMessage],
   );
-  const reactionView = useMemo(() => projectMessageReactions(pageView.visibleMessages), [pageView]);
-  const visibleReceipts = reactionView.visibleMessages.filter((message) =>
-    messageHasVisibleBlocks(message.blocks, showToolActivity),
-  );
-  const exchanges = peerExchangeLines({ ...transcript, messages: visibleReceipts });
-  const shownMessages = visibleReceipts.filter(
-    (message) => !exchanges.lineOf.has(message.id) || exchanges.lines.has(message.id),
-  );
-  const separatorIds = timeSeparatorIds(shownMessages);
-  const unreadDividerId = unreadDividerMessageId(shownMessages, unreadAfterSeq, olderCursor, meId);
-  const workingLabel =
-    liveActivityLine(messages) ?? (workingRoutine ? t`Running ${workingRoutine}…` : t`Working…`);
   const [quoteDraft, setQuoteDraft] = useState<{
     message: ThreadMessage;
     text: string;
@@ -385,8 +289,7 @@ export const Transcript = memo(function Transcript({
   const endJumpScroll = useCallback(() => {
     jumpScrolling.current = false;
     window.clearTimeout(jumpScrollTimer.current);
-    scrollRef.current?.removeEventListener("scrollend", endJumpScroll);
-  }, [scrollRef]);
+  }, []);
   // A jump scroll must win over follow-the-tail: unfollow inside the commit
   // that mounts the row so a live commit cannot cancel the animation, keep
   // retrying while the pinned window is still rendering, and suppress the
@@ -397,7 +300,7 @@ export const Transcript = memo(function Transcript({
     if (!scrollRequest || scrolledJump.current === scrollRequest.nonce) return;
     const element = scrollRef.current;
     const row = element?.querySelector(
-      `[data-message-id="${CSS.escape(exchanges.lineOf.get(scrollRequest.messageId) ?? scrollRequest.messageId)}"]`,
+      `[data-message-id="${CSS.escape(view.lineOf.get(scrollRequest.messageId) ?? scrollRequest.messageId)}"]`,
     );
     if (!element || !row) return;
     scrolledJump.current = scrollRequest.nonce;
@@ -406,7 +309,10 @@ export const Transcript = memo(function Transcript({
     jumpScrolling.current = true;
     element.addEventListener("scrollend", endJumpScroll, { once: true });
     window.clearTimeout(jumpScrollTimer.current);
-    jumpScrollTimer.current = window.setTimeout(endJumpScroll, 2_000);
+    jumpScrollTimer.current = window.setTimeout(() => {
+      element.removeEventListener("scrollend", endJumpScroll);
+      endJumpScroll();
+    }, 2_000);
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     // Streaming layout updates can interrupt a smooth jump before it reaches the row.
     row.scrollIntoView({ behavior: "auto", block: "center" });
@@ -421,7 +327,7 @@ export const Transcript = memo(function Transcript({
       { duration: 1200 },
     );
     onScrollRequestHandled();
-  }, [messages, scrollRequest, scrollRef, endJumpScroll, onScrollRequestHandled, exchanges.lineOf]);
+  }, [messages, scrollRequest, scrollRef, endJumpScroll, onScrollRequestHandled, view.lineOf]);
 
   const followedRequest = useRef(followRequest);
   useLayoutEffect(() => {
@@ -536,43 +442,30 @@ export const Transcript = memo(function Transcript({
             {t`Load earlier messages`}
           </Button>
         ) : null}
-        {groupVoiceChats(reactionView.visibleMessages).map((item) => {
-          if (item.kind === "voiceChat") {
+        {view.rows.map((row) => {
+          if (row.kind === "voiceChat") {
+            const first = row.group.messages[0];
             return (
-              <div key={item.key}>
-                {item.messages[0] && separatorIds.has(item.messages[0].id) ? (
-                  <TimeSeparator
-                    createdAt={item.messages[0].createdAt}
-                    locale={i18n.locale || "en"}
-                  />
+              <div key={row.group.key}>
+                {first && row.separator ? (
+                  <TimeSeparator createdAt={first.createdAt} locale={i18n.locale || "en"} />
                 ) : null}
-                {voiceChatHoldsMessage(item, unreadDividerId) ? (
-                  <UnreadDivider
-                    afterSeparator={Boolean(
-                      item.messages[0] && separatorIds.has(item.messages[0].id),
-                    )}
-                  />
-                ) : null}
+                {row.unreadDivider ? <UnreadDivider afterSeparator={row.separator} /> : null}
                 <VoiceChatCard
-                  group={item}
+                  group={row.group}
                   revealMessageId={scrollRequest?.messageId}
                   onCallBack={onCallBack}
                 />
               </div>
             );
           }
-          const message = item.message;
-          if (!messageHasVisibleBlocks(message.blocks, showToolActivity)) return null;
-          const peerReceipt = isPeerReceiptBlocks(message.blocks);
-          const messageReactions = reactionView.reactions.get(message.id);
+          const { message, peerReceipt, reactions: messageReactions } = row;
           return (
             <Fragment key={message.id}>
-              {separatorIds.has(message.id) ? (
+              {row.separator ? (
                 <TimeSeparator createdAt={message.createdAt} locale={i18n.locale || "en"} />
               ) : null}
-              {message.id === unreadDividerId ? (
-                <UnreadDivider afterSeparator={separatorIds.has(message.id)} />
-              ) : null}
+              {row.unreadDivider ? <UnreadDivider afterSeparator={row.separator} /> : null}
               <div
                 data-message-id={message.id}
                 className={peerReceipt ? "relative py-0.5" : "group/message relative hover:z-[1]"}
@@ -593,7 +486,7 @@ export const Transcript = memo(function Transcript({
                               (block) => block.kind === "ask" || block.kind === "mcp_approval",
                             )
                           ? "relative w-full min-w-0 max-w-xl"
-                          : `relative ${message.blocks.some((block) => block.kind === "app_connect" || block.kind === "page") || pageView.pages.has(message.id) ? "w-full" : "w-fit"} min-w-0 ${bubbleFrameWidth(message.role)}`
+                          : `relative ${message.blocks.some((block) => block.kind === "app_connect" || block.kind === "page") || row.pages ? "w-full" : "w-fit"} min-w-0 ${bubbleFrameWidth(message.role)}`
                     }
                   >
                     <MessageView
@@ -601,14 +494,14 @@ export const Transcript = memo(function Transcript({
                       message={message}
                       meId={meId}
                       markedUnread={message.id === markedUnreadMessageId}
-                      mentions={mentionView.mentions.get(message.id)}
-                      pages={pageView.pages.get(message.id)}
-                      isPageSuperseded={pageView.isSuperseded}
-                      canAnswer={answerableAskIds.has(message.id)}
-                      canDismiss={dismissableAskIds.has(message.id)}
+                      mentions={row.mentions}
+                      pages={row.pages}
+                      isPageSuperseded={view.isPageSuperseded}
+                      canAnswer={row.canAnswer}
+                      canDismiss={row.canDismiss}
                       onOpenBot={onOpenBot}
                       onOpenPeerMessages={onOpenPeerMessages}
-                      peerExchange={exchanges.lines.get(message.id)}
+                      peerExchange={row.peerExchange}
                       onAnswer={onAnswer}
                       speakerName={
                         peerReceipt
@@ -619,11 +512,7 @@ export const Transcript = memo(function Transcript({
                       }
                       memberName={memberName}
                       peerBot={peerBot}
-                      replyParent={
-                        message.replyToMessageId
-                          ? messageById.get(message.replyToMessageId)
-                          : undefined
-                      }
+                      replyParent={row.replyParent}
                       onJumpToMessage={jumpToMessage}
                       onRefresh={onRefresh}
                       onBotChanged={onBotChanged}
@@ -665,11 +554,22 @@ export const Transcript = memo(function Transcript({
             </Fragment>
           );
         })}
-        {running &&
-        !messages.some(
-          (message) => message.id.startsWith("progress:") && liveMessageComposing(message.blocks),
-        ) ? (
-          <ActiveBotGlyph bots={workingBots} label={workingLabel} />
+        {running && !view.composing ? (
+          <ActiveBotGlyph
+            bots={view.workingRuns.map((run) => {
+              const bot = peerBot(run.botId);
+              return {
+                botId: run.botId,
+                color: bot?.color ?? FALLBACK_BOT_COLOR,
+                avatarSet: bot?.avatarSet,
+                name: bot?.name,
+                status: run.status,
+              };
+            })}
+            label={
+              view.activityLine ?? (workingRoutine ? t`Running ${workingRoutine}…` : t`Working…`)
+            }
+          />
         ) : null}
       </div>
       {quoteDraft ? (

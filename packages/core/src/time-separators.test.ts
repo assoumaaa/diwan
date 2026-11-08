@@ -55,9 +55,10 @@ describe("time separators in the viewer's local calendar", () => {
     vi.spyOn(Intl, "DateTimeFormat").mockImplementation(() => {
       throw new TypeError("Unavailable");
     });
-    expect(formatTimeSeparator(at(7, 9, 14), "en-US", labels, at(8))).toBe("Yesterday 09:14");
-    expect(formatTimeSeparator(at(6, 16, 5), "en-US", labels, at(8))).toBe("2026-10-06 16:05");
-    expect(formatTimeSeparator(at(1, 16, 5), "en-US", labels, at(8))).toBe("2026-10-01 16:05");
+    // Formatters are kept once built, so this uses a locale no earlier case formatted.
+    expect(formatTimeSeparator(at(7, 9, 14), "en-GB", labels, at(8))).toBe("Yesterday 09:14");
+    expect(formatTimeSeparator(at(6, 16, 5), "en-GB", labels, at(8))).toBe("2026-10-06 16:05");
+    expect(formatTimeSeparator(at(1, 16, 5), "en-GB", labels, at(8))).toBe("2026-10-01 16:05");
   });
   it("groups consecutive messages without marking every row", () => {
     const messages = [at(8, 12), at(8, 12, 1), at(8, 12, 16), at(9)].map((date, id) => ({

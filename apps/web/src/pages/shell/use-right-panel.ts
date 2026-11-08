@@ -1,5 +1,5 @@
 import type { Routine } from "@rakazo/contracts";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { SetURLSearchParams } from "react-router-dom";
 import type { Panel, RightPanelState } from "../../lib/right-panel-state";
 import {
@@ -20,16 +20,18 @@ export function useRightPanel({
   const [panel, setPanelState] = useState<Panel>(null);
   const [restoredPanelKey, setRestoredPanelKey] = useState<string | null>(null);
   const panelStorageKeyRef = useRef<string | null>(null);
-  const observedPanelKey = useRef<string | null>(null);
-  const explicitPanelTarget = useRef<string | null>(null);
-  const pendingPanelRestore = useRef<RightPanelState | null>(null);
-  const pendingExplicitPanel = useRef(false);
+  const observedPanelKeyRef = useRef<string | null>(null);
+  const explicitPanelTargetRef = useRef<string | null>(null);
+  const pendingPanelRestoreRef = useRef<RightPanelState | null>(null);
+  const pendingExplicitPanelRef = useRef(false);
   const panelSearch = useRef({ searchParams, setSearchParams });
-  panelSearch.current = { searchParams, setSearchParams };
+  useLayoutEffect(() => {
+    panelSearch.current = { searchParams, setSearchParams };
+  }, [searchParams, setSearchParams]);
   const setPanel = useCallback((next: Panel | ((current: Panel) => Panel)) => {
     // A user navigation wins over a saved routine still waiting for its list.
-    pendingPanelRestore.current = null;
-    pendingExplicitPanel.current = panelStorageKeyRef.current === null;
+    pendingPanelRestoreRef.current = null;
+    pendingExplicitPanelRef.current = panelStorageKeyRef.current === null;
     setRestoredPanelKey(panelStorageKeyRef.current);
     setModelFocusRequest(0);
     setPanelState(next);
@@ -43,8 +45,8 @@ export function useRightPanel({
 
   /** Opens `next` in another chat, saved under that chat's `destKey` rather than this one's. */
   function openPanelInChat(destKey: string | null, next: Panel, navigateToChat: () => void) {
-    explicitPanelTarget.current = destKey;
-    pendingPanelRestore.current = null;
+    explicitPanelTargetRef.current = destKey;
+    pendingPanelRestoreRef.current = null;
     navigateToChat();
     // Mark the destination key restored so we do not write settings onto the source chat.
     setPanelState(next);
@@ -61,10 +63,10 @@ export function useRightPanel({
     restoredPanelKey,
     setRestoredPanelKey,
     panelStorageKeyRef,
-    observedPanelKey,
-    explicitPanelTarget,
-    pendingPanelRestore,
-    pendingExplicitPanel,
+    observedPanelKeyRef,
+    explicitPanelTargetRef,
+    pendingPanelRestoreRef,
+    pendingExplicitPanelRef,
   };
 }
 
@@ -104,16 +106,18 @@ export function useRightPanelRestore({
     restoredPanelKey,
     setRestoredPanelKey,
     panelStorageKeyRef,
-    observedPanelKey,
-    explicitPanelTarget,
-    pendingPanelRestore,
-    pendingExplicitPanel,
+    observedPanelKeyRef,
+    explicitPanelTargetRef,
+    pendingPanelRestoreRef,
+    pendingExplicitPanelRef,
   } = rightPanel;
   const panelStorageKey =
     userId && spaceId && panelTarget
       ? rightPanelStorageKey(userId, spaceId, inGroup ? "group" : "bot", panelTarget)
       : null;
-  panelStorageKeyRef.current = panelStorageKey;
+  useLayoutEffect(() => {
+    panelStorageKeyRef.current = panelStorageKey;
+  }, [panelStorageKey]);
 
   useEffect(() => {
     if (panel !== "routine") {
@@ -123,24 +127,24 @@ export function useRightPanelRestore({
 
   useEffect(() => {
     if (!panelStorageKey) return;
-    if (observedPanelKey.current !== panelStorageKey) {
-      observedPanelKey.current = panelStorageKey;
-      if (pendingExplicitPanel.current || explicitPanelTarget.current === panelStorageKey) {
-        pendingExplicitPanel.current = false;
-        explicitPanelTarget.current = null;
-        pendingPanelRestore.current = null;
+    if (observedPanelKeyRef.current !== panelStorageKey) {
+      observedPanelKeyRef.current = panelStorageKey;
+      if (pendingExplicitPanelRef.current || explicitPanelTargetRef.current === panelStorageKey) {
+        pendingExplicitPanelRef.current = false;
+        explicitPanelTargetRef.current = null;
+        pendingPanelRestoreRef.current = null;
         setRestoredPanelKey(panelStorageKey);
         return;
       }
-      explicitPanelTarget.current = null;
+      explicitPanelTargetRef.current = null;
       // Each chat opens with its own saved panel, closed unless the user left it open there.
-      pendingPanelRestore.current = readRightPanelState(panelStorageKey);
+      pendingPanelRestoreRef.current = readRightPanelState(panelStorageKey);
     }
-    const saved = pendingPanelRestore.current;
+    const saved = pendingPanelRestoreRef.current;
     if (!saved) return;
     // Explicit routine links take precedence over a local layout preference.
     if (searchParams.has("routine")) {
-      pendingPanelRestore.current = null;
+      pendingPanelRestoreRef.current = null;
       return;
     }
     if (saved.panel === "routine" && saved.routineId && routinesBotId !== activeId) return;
@@ -152,7 +156,7 @@ export function useRightPanelRestore({
       if (saved.routineId && !routine) next = "routines";
       restoreRoutine(routine ?? null);
     }
-    pendingPanelRestore.current = null;
+    pendingPanelRestoreRef.current = null;
     setPanelState(next);
     setRestoredPanelKey(panelStorageKey);
   }, [panelStorageKey, activeId, routinesBotId, routines, searchParams]);
@@ -161,8 +165,13 @@ export function useRightPanelRestore({
     // Do not gate writes on ?routine= staying in the URL — a stuck/failed routine
     // list would freeze layout prefs. Deep-link handling uses setPanelState for the
     // bot-switch close so restoredPanelKey stays unset until an intentional setPanel.
-    if (!panelStorageKey || restoredPanelKey !== panelStorageKey || pendingPanelRestore.current)
+    if (
+      !panelStorageKey ||
+      restoredPanelKey !== panelStorageKey ||
+      pendingPanelRestoreRef.current
+    ) {
       return;
+    }
     writeRightPanelState(panelStorageKey, panel, editingRoutineId);
   }, [panelStorageKey, restoredPanelKey, panel, editingRoutineId]);
 }

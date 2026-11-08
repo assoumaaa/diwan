@@ -56,15 +56,20 @@ export function useShellNavigation() {
       ),
     [guardedNavigate],
   );
-  const overlay = readShellOverlay(searchParams);
+  // Memoized by hand: the React Compiler skips this hook for its render-time refs, and a new
+  // setOverlay each render would reach the memoized transcript through every handler built on it.
+  const overlay = useMemo(() => readShellOverlay(searchParams), [searchParams]);
   // Overlays replace the URL rather than adding history, so opening and closing never race a navigation.
-  function setOverlay(next: ShellOverlay) {
-    overlayRevision.current += 1;
-    guardedNavigate(
-      { search: searchString(withShellOverlay(searchParams, next)) },
-      { replace: true },
-    );
-  }
+  const setOverlay = useCallback(
+    (next: ShellOverlay) => {
+      overlayRevision.current += 1;
+      guardedNavigate(
+        { search: searchString(withShellOverlay(searchParams, next)) },
+        { replace: true },
+      );
+    },
+    [guardedNavigate, searchParams],
+  );
   return {
     navigate,
     navigationRevision,

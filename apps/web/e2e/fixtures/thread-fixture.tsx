@@ -1,10 +1,11 @@
 import type { ProductEvent, ThreadMessage, ThreadSnapshot } from "@rakazo/contracts";
-import { foldPeerReplies, reduceThreadSnapshot } from "@rakazo/core";
+import { reduceThreadSnapshot } from "@rakazo/core";
 import type { GroupAvatarMember } from "@rakazo/ui-web";
 import { DEFAULT_BOT_AVATAR_COLOR } from "@rakazo/ui-web";
 import type { ReactNode } from "react";
 import { useMemo, useRef } from "react";
 import { rpc } from "../../src/lib/rpc";
+import { projectTranscript } from "../../src/lib/transcript-projection";
 import { Transcript } from "../../src/pages/shell/transcript";
 
 export const BOT = { botId: "bot-1", name: "Chief", color: DEFAULT_BOT_AVATAR_COLOR };
@@ -63,10 +64,29 @@ export function FixtureTranscript({
   bots?: GroupAvatarMember[];
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const transcript = useMemo(
-    () => foldPeerReplies(messages, { includePeerReceipts: true }),
-    [messages],
-  );
+  const view = useMemo(() => {
+    const projected = projectTranscript(null, {
+      messages,
+      runs: running ? [{ id: "run-1", botId: bots[0]?.botId ?? BOT.botId, status: "running" }] : [],
+      showToolActivity,
+      unreadAfterSeq: null,
+      olderCursor: null,
+      expandedMarkerIds: new Set(),
+    });
+    // Fixtures name their answerable asks instead of staging a waiting run for each one.
+    return {
+      ...projected,
+      rows: projected.rows.map((row) =>
+        row.kind === "message"
+          ? {
+              ...row,
+              canAnswer: answerableAskIds.has(row.message.id),
+              canDismiss: answerableAskIds.has(row.message.id),
+            }
+          : row,
+      ),
+    };
+  }, [messages, running, showToolActivity, answerableAskIds, bots]);
   const bot = (botId: string | undefined) => bots.find((member) => member.botId === botId);
   return (
     <main className="flex h-dvh flex-col bg-background text-foreground">
@@ -79,15 +99,9 @@ export function FixtureTranscript({
         followRequest={0}
         callHoldsSpeaker={false}
         artifactTarget={{ botId: BOT.botId }}
-        transcript={transcript}
-        showToolActivity={showToolActivity}
-        olderCursor={null}
-        unreadAfterSeq={null}
+        view={view}
+        onExpandPeerMarker={noop}
         loadingOlder={false}
-        answerableAskIds={answerableAskIds}
-        dismissableAskIds={answerableAskIds}
-        running={running}
-        workingBots={running ? [bots[0]!] : []}
         onLoadOlder={noop}
         onOpenBot={noop}
         onAnswer={resolved}
