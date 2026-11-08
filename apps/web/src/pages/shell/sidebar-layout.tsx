@@ -1,7 +1,7 @@
 import { useLingui } from "@lingui/react/macro";
 import { SidebarProvider } from "@rakazo/ui-web";
 import type { ComponentProps, CSSProperties } from "react";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef } from "react";
 import { BOTS_SIDEBAR_DEFAULT_WIDTH } from "../../lib/bots-sidebar-pref";
 import { useSidebarResize } from "./use-sidebar-resize";
 
@@ -33,14 +33,42 @@ export function BotsSidebarLayout({
     onCollapsedChange,
     onPreviewCollapsedChange,
   });
+  const shellRef = useRef<HTMLDivElement>(null);
+  // The width the whole shell carries. A CSS variable on the shell restyles every element in the
+  // app, chat included, so a drag moves it once, on release, and never per step.
+  const settledWidth = useRef(width);
+  const shellWidth = resizing ? settledWidth.current : width;
+  useEffect(() => {
+    if (!resizing) {
+      settledWidth.current = width;
+    }
+  }, [width, resizing]);
+  // Only the sidebar reads its width, so live drag widths go on it alone.
+  useLayoutEffect(() => {
+    const sidebar = shellRef.current?.querySelector<HTMLElement>('[data-slot="sidebar"]');
+    if (!sidebar) {
+      return;
+    }
+    if (resizing) {
+      sidebar.style.setProperty("--sidebar-width", `${width}px`);
+      sidebar.style.setProperty("--sidebar-width-icon", `${width}px`);
+      return;
+    }
+    sidebar.style.removeProperty("--sidebar-width");
+    sidebar.style.removeProperty("--sidebar-width-icon");
+  }, [width, resizing]);
   return (
     <SidebarWidthContext value={width}>
       <SidebarProvider
         {...props}
+        ref={shellRef}
         open={!collapsed}
         onOpenChange={(open) => onCollapsedChange(!open)}
         style={
-          { "--sidebar-width": `${width}px`, "--sidebar-width-icon": `${width}px` } as CSSProperties
+          {
+            "--sidebar-width": `${shellWidth}px`,
+            "--sidebar-width-icon": `${shellWidth}px`,
+          } as CSSProperties
         }
         data-resizing-sidebar={resizing || undefined}
       >

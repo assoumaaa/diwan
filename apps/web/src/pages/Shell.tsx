@@ -599,18 +599,30 @@ function SpaceShell() {
     : snapshot?.botId === active?.id
       ? snapshot
       : null;
-  const currentRuns = activeThreadRuns(activeSnapshot);
+  // Stable across unrelated renders (a sidebar toggle), so the memoized transcript skips them.
+  const currentRuns = useMemo(() => activeThreadRuns(activeSnapshot), [activeSnapshot]);
   const answerableAskIds = useMemo(() => answerableAskMessageIds(activeSnapshot), [activeSnapshot]);
   const dismissableAskIds = useMemo(
     () => dismissableAskMessageIds(activeSnapshot, userId),
     [activeSnapshot, userId],
   );
-  const workingRuns = currentRuns.filter((run) => isRunWorking(run.status));
+  const workingRuns = useMemo(
+    () => currentRuns.filter((run) => isRunWorking(run.status)),
+    [currentRuns],
+  );
   const transcriptRunning = workingRuns.length > 0;
   const composerRunning = currentRuns.some((run) => isActive(run.status));
   const transcript = useMemo(
     () => foldPeerReplies(activeSnapshot?.messages ?? [], { includePeerReceipts: true }),
     [activeSnapshot?.messages],
+  );
+  // The latest callBot behind a stable callback, so the memoized transcript keeps its props.
+  const callBotRef = useRef(callBot);
+  callBotRef.current = callBot;
+  const canCallBack = Boolean(bootstrapMe?.phoneCallsEnabled && !inGroup && active);
+  const callBack = useMemo(
+    () => (canCallBack && active ? () => callBotRef.current(active) : undefined),
+    [canCallBack, active],
   );
   const transcriptArtifactTarget = useMemo<ArtifactTarget>(
     () => (inGroup ? { groupId: groupId ?? "" } : { botId: active?.id ?? "" }),
@@ -625,16 +637,20 @@ function SpaceShell() {
     },
     [bots, transcriptMembers],
   );
-  const workingBots: GroupAvatarMember[] = workingRuns.map((run) => {
-    const bot = resolveTranscriptBot(run.botId);
-    return {
-      botId: run.botId,
-      color: bot?.color ?? FALLBACK_BOT_COLOR,
-      avatarSet: bot?.avatarSet,
-      name: bot?.name,
-      status: run.status,
-    };
-  });
+  const workingBots = useMemo<GroupAvatarMember[]>(
+    () =>
+      workingRuns.map((run) => {
+        const bot = resolveTranscriptBot(run.botId);
+        return {
+          botId: run.botId,
+          color: bot?.color ?? FALLBACK_BOT_COLOR,
+          avatarSet: bot?.avatarSet,
+          name: bot?.name,
+          status: run.status,
+        };
+      }),
+    [workingRuns, resolveTranscriptBot],
+  );
   const resolveTranscriptMemberName = useCallback(
     (botId: string | undefined) => memberName(transcriptMembers, botId),
     [transcriptMembers],
@@ -1099,11 +1115,7 @@ function SpaceShell() {
               workingBots={workingBots}
               workingRoutine={workingRoutineName(workingRuns)}
               userBubble={userBubble}
-              onCallBack={
-                bootstrapMe?.phoneCallsEnabled && !inGroup && active
-                  ? () => callBot(active)
-                  : undefined
-              }
+              onCallBack={callBack}
               onLoadOlder={loadOlder}
               onOpenBot={openBot}
               onAnswer={composer.answerMessage}
