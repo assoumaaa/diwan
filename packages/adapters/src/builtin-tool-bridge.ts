@@ -44,6 +44,10 @@ export const CORE_BUILTIN_TOOL_NAMES: ReadonlySet<string> = new Set([
   "remember",
   "save_memory",
   "recall_memory",
+  // A bot that leads a team messages teammates and updates the shared note in most runs;
+  // looking them up first cost each of those runs a model turn.
+  "message_bot",
+  "save_shared_memory",
   "schedule_create",
   "schedule_list",
   "search_history",
