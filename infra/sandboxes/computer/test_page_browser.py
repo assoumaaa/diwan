@@ -690,6 +690,23 @@ class PurchaseTest(unittest.TestCase):
         tabs.assert_not_called()
         self.assertEqual(json.loads(printed.call_args.args[0])["ok"], True)
 
+    def test_a_check_of_a_screen_press_never_waits_on_agent_browser(self):
+        # A bot's page that is still loading keeps agent-browser busy past its timeout. Asking it which tab to
+        # read failed the check after 21 seconds, and a failed check asks the person to approve a payment.
+        listing = [{"type": "page", "id": "tab-1", "url": "https://shop.example.test/item"}]
+        for request, points in (('{"desktop": true, "enter": true}', False),
+                                ('{"actions": [{"kind": "click", "ref": "e8"}]}', True)):
+            browser = FakeAgentBrowser()
+            with self.subTest(request=request), patch.dict(os.environ, {"RAKAZO_CDP_PORT": "1"}), \
+                    patch.object(helper, "browser_closed", return_value=False), patch.object(helper, "wait_for_cdp"), \
+                    patch.object(helper, "http_get_json", return_value=listing), \
+                    patch.object(helper, "AgentBrowser", return_value=browser), \
+                    patch.object(browser, "use_tab", create=True) as use_tab, patch("builtins.print") as printed:
+                helper.run(["rakazo-page-browser", "purchase_check", request])
+                self.assertEqual(json.loads(printed.call_args.args[0])["ok"], True)
+                # Only a browser_act click names an element, which agent-browser finds in the tab.
+                self.assertEqual(use_tab.called, points)
+
     def test_a_purchase_check_with_no_page_or_a_browser_page_showing_finds_nothing_to_buy(self):
         for listing in ([], [{"type": "page", "id": "newtab", "url": "chrome://newtab/"}]):
             with self.subTest(listing=listing), patch.dict(os.environ, {"RAKAZO_CDP_PORT": "1"}), \
@@ -1133,6 +1150,22 @@ class TypeTest(unittest.TestCase):
 
 
 class AgentBrowserTest(unittest.TestCase):
+    def test_a_call_on_another_screen_never_reads_the_settings_half_written(self):
+        # Bots on the same computer share the settings file: emptied in place, it failed another bot's call.
+        with tempfile.TemporaryDirectory() as folder, patch.object(helper.tempfile, "gettempdir", return_value=folder):
+            config = helper.AgentBrowser(9222).config
+            seen = []
+            real = os.replace
+
+            def replace(written, path):
+                seen.append(Path(path).read_text(encoding="utf-8"))
+                real(written, path)
+
+            with patch.object(helper.os, "replace", side_effect=replace):
+                helper.AgentBrowser(9223)
+            self.assertEqual((seen, Path(config).read_text(encoding="utf-8")), (["{}"], "{}"))
+            self.assertEqual(os.listdir(Path(config).parent), ["config.json"])
+
     def test_runs_on_the_screen_s_browser_with_its_own_settings_and_commands_over_stdin(self):
         browser = helper.AgentBrowser(9222)
         self.assertEqual(browser.env["AGENT_BROWSER_CDP"], "9222")

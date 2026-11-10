@@ -352,10 +352,13 @@ class AgentBrowser:
         info = os.lstat(self.home)
         if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid():
             raise RuntimeError("The page browser's own folder is not this user's")
-        # Its own configuration, never one from the bot's home or working folder.
+        # Its own configuration, never one from the bot's home or working folder. Replaced whole: a call on
+        # another screen of this computer may be reading it.
         self.config = os.path.join(self.home, "config.json")
-        with open(self.config, "w", encoding="utf-8") as config:
+        handle, written = tempfile.mkstemp(dir=self.home)
+        with os.fdopen(handle, "w", encoding="utf-8") as config:
             config.write("{}")
+        os.replace(written, self.config)
         self.session = f"display-{port}"
         # When set, every command answers by then or is given up.
         self.deadline: float | None = None
@@ -2598,7 +2601,10 @@ def run(argv: list[str]) -> int:
             # The new tab is already on the site: navigating it again would go unseen by the request log
             # it has only just started.
             opened = True
-        browser.use_tab(target)
+        # A check of a screen press reads the tab over its own connection. agent-browser, which a page still
+        # loading can keep busy past its timeout, is only needed to find the element a browser_act click names.
+        if command != "purchase_check" or args.get("actions"):
+            browser.use_tab(target)
         page = PageBrowser(port, target, browser)
         if downloads:
             session = client.call("Target.attachToTarget", {"targetId": target, "flatten": True})["sessionId"]
