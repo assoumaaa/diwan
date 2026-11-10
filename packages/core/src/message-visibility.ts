@@ -30,9 +30,10 @@ export type UserVisibleMessagesOptions = {
    */
   includeDelegatedReplyText?: boolean;
   /**
-   * With receipts kept, also fold a relay -- the bot's reply after another bot reports back on
-   * work it delegated -- under the chip that opens that exchange, for a chat that lets the person
-   * fold it open. Its user-input cards stay inline. Off by default: the reply is for the user.
+   * With receipts kept, also fold a relay of a progress update -- the bot's reply after another
+   * bot reports progress on work it delegated -- under the chip that opens that exchange, for a
+   * chat that lets the person fold it open. A relay of a result and user-input cards stay inline.
+   * Off by default: the reply is for the user.
    */
   foldRelayReplies?: boolean;
 };
@@ -112,6 +113,9 @@ export function foldPeerReplies<T extends PresentableMessage>(
   const markerByRunId = new Map<string, string>();
   // Runs not woken by new work from another bot: their replies are for the user.
   const relayRunIds = new Set<string>();
+  // Relays of a progress update, the only ones a chat may fold: a relay of a result is the answer
+  // the person is waiting for.
+  const progressRelayRunIds = new Set<string>();
   const sentReceiptIds = new Set(
     messages
       .filter((message) => message.blocks.some((block) => block.kind === "bot_message_sent"))
@@ -134,6 +138,14 @@ export function foldPeerReplies<T extends PresentableMessage>(
     if (message.runId && !markerByRunId.has(message.runId)) {
       markerByRunId.set(message.runId, message.id);
       if (relay) relayRunIds.add(message.runId);
+      if (
+        relay &&
+        message.blocks.some(
+          (block) => block.kind === "bot_message_received" && block.intent === "status",
+        )
+      ) {
+        progressRelayRunIds.add(message.runId);
+      }
     }
   }
   const peerRunIds = new Set([...(options.knownPeerRunIds ?? []), ...markerByRunId.keys()]);
@@ -186,7 +198,7 @@ export function foldPeerReplies<T extends PresentableMessage>(
     // Only bot replies fold: a person's answer, steering or reaction in the run stays inline.
     if (message.role !== "bot") return true;
     const relay = relayRunIds.has(message.runId);
-    if (relay && !foldRelays) return true;
+    if (relay && !(foldRelays && progressRelayRunIds.has(message.runId))) return true;
     const markerId = includePeerReceipts ? markerByRunId.get(message.runId) : undefined;
     // A reply whose marker is outside the loaded page stays inline.
     if (markerId === undefined) return true;

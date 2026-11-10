@@ -227,26 +227,39 @@ describe("user-visible messages", () => {
     expect(transcript.folded.get("received")).toEqual([pageReply]);
   });
 
-  it("folds a relay under the chip that opens its exchange when the chat asks to", () => {
-    const transcript = [
-      message("user", "run-user", [{ kind: "text", text: "Please ask Coder." }]),
-      message("sent", "run-user", [
-        { kind: "bot_message_sent", toBotId: "coder", toBotName: "Coder", text: "Check this." },
+  const relayExchange = (intent: "result" | "status") => [
+    message("user", "run-user", [{ kind: "text", text: "Please ask Coder." }]),
+    message("sent", "run-user", [
+      { kind: "bot_message_sent", toBotId: "coder", toBotName: "Coder", text: "Check this." },
+    ]),
+    {
+      ...message("received", "run-peer", [
+        {
+          kind: "bot_message_received",
+          fromBotId: "coder",
+          fromBotName: "Coder",
+          text: "The endpoint returns 200.",
+          intent,
+        },
       ]),
-      {
-        ...message("received", "run-peer", [
-          {
-            kind: "bot_message_received",
-            fromBotId: "coder",
-            fromBotName: "Coder",
-            text: "The endpoint returns 200.",
-            intent: "result" as const,
-          },
-        ]),
-        replyToMessageId: "sent",
-      },
-      message("relay", "run-peer", [{ kind: "text", text: "Coder confirmed it returns 200." }]),
-    ];
+      replyToMessageId: "sent",
+    },
+    message("relay", "run-peer", [{ kind: "text", text: "Coder confirmed it returns 200." }]),
+  ];
+
+  it("keeps the relay of a result inline even when the chat folds relays", () => {
+    // The person asked for this answer; folded under the chip, it looked like no reply came.
+    const folded = foldPeerReplies(relayExchange("result"), {
+      includePeerReceipts: true,
+      foldRelayReplies: true,
+    });
+
+    expect(folded.messages.map((item) => item.id)).toEqual(["user", "sent", "relay"]);
+    expect(folded.folded.size).toBe(0);
+  });
+
+  it("folds the relay of a progress update under the chip that opens its exchange", () => {
+    const transcript = relayExchange("status");
     const folded = foldPeerReplies(transcript, {
       includePeerReceipts: true,
       foldRelayReplies: true,

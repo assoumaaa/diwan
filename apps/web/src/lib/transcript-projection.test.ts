@@ -184,7 +184,7 @@ describe("projectTranscript", () => {
 });
 
 describe("peer folds", () => {
-  const exchange = [
+  const exchange = (intent: "result" | "status") => [
     message("ask", [{ kind: "text", text: "Ask Coder." }], { role: "user", runId: "run-user" }),
     message(
       "sent",
@@ -199,7 +199,7 @@ describe("peer folds", () => {
           fromBotId: "coder",
           fromBotName: "Coder",
           text: "It returns 200.",
-          intent: "result",
+          intent,
         },
       ],
       { runId: "run-peer", role: "user", replyToMessageId: "sent" },
@@ -208,9 +208,12 @@ describe("peer folds", () => {
       runId: "run-peer",
     }),
   ];
-  const projectWith = (expandedMarkerIds: ReadonlySet<string>) =>
+  const projectWith = (
+    expandedMarkerIds: ReadonlySet<string>,
+    intent: "result" | "status" = "status",
+  ) =>
     projectTranscript(null, {
-      messages: exchange,
+      messages: exchange(intent),
       runs: [],
       meId: "me",
       showToolActivity: false,
@@ -224,6 +227,10 @@ describe("peer folds", () => {
     view.rows.find(
       (row): row is TranscriptMessageRow => row.kind === "message" && row.message.id === "sent",
     );
+
+  it("shows the answer to delegated work without unfolding anything", () => {
+    expect(rowIds(projectWith(new Set(), "result"))).toEqual(["ask", "sent", "update"]);
+  });
 
   it("folds a bot's update on delegated work under the line that opens the exchange", () => {
     const closed = projectWith(new Set());

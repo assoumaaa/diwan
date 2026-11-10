@@ -52,8 +52,9 @@ describe("peer exchanges", () => {
   );
 
   it("leaves a folded relay out of the exchange count", () => {
-    // A result wakes the bot to report to the person; folded away, it is still not a peer message.
-    const wake = received("m1", "result");
+    // A progress update wakes the bot to report to the person; folded away, it is still not a
+    // peer message.
+    const wake = received("m1", "status");
     const transcript = foldPeerReplies([wake, reply("m2", wake.runId!)], {
       includePeerReceipts: true,
       foldRelayReplies: true,
